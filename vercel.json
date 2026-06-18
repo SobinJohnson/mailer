@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/send/process",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/sync/imap",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}

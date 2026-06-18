@@ -1,0 +1,109 @@
+# ============================================================
+# Mailer CRM — Self-Hosted Supabase Stack
+# ============================================================
+# Usage:
+#   cd docker
+#   docker compose up -d
+#
+# This spins up everything the app needs locally:
+#   • PostgreSQL 15    (port 5432)
+#   • Supabase Auth    (GoTrue)
+#   • Supabase REST    (PostgREST on port 3001)
+#   • Supabase Studio  (port 54323 — optional admin UI)
+#   • Kong API Gateway (port 8000 — unified API)
+#
+# After startup, set these in your .env.local:
+#   NEXT_PUBLIC_SUPABASE_URL=http://localhost:8000
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY=<see below>
+#   SUPABASE_SERVICE_KEY=<see below>
+# ============================================================
+
+version: "3.8"
+
+services:
+  # ── PostgreSQL ─────────────────────────────────────────────
+  db:
+    image: supabase/postgres:15.6.1.143
+    container_name: mailer-db
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-your-super-secret-db-password}
+      POSTGRES_DB: postgres
+      JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+      JWT_EXP: ${JWT_EXP:-3600}
+    volumes:
+      - mailer-db-data:/var/lib/postgresql/data
+      - ./volumes/db/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Supabase Auth (GoTrue) ─────────────────────────────────
+  auth:
+    image: supabase/gotrue:v2.158.1
+    container_name: mailer-auth
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${API_EXTERNAL_URL:-http://localhost:8000}
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD:-your-super-secret-db-password}@db:5432/postgres
+      GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:3000}
+      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS:-}
+      GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: ${JWT_EXP:-3600}
+      GOTRUE_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: true
+      GOTRUE_MAILER_AUTOCONFIRM: true
+      GOTRUE_EXTERNAL_GOOGLE_ENABLED: ${GOOGLE_AUTH_ENABLED:-false}
+      GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOTRUE_EXTERNAL_GOOGLE_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: ${API_EXTERNAL_URL:-http://localhost:8000}/auth/v1/callback
+
+  # ── PostgREST ──────────────────────────────────────────────
+  rest:
+    image: postgrest/postgrest:v12.2.3
+    container_name: mailer-rest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD:-your-super-secret-db-password}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public,storage,graphql_public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+
+  # ── Kong API Gateway ───────────────────────────────────────
+  kong:
+    image: kong:2.8.1
+    container_name: mailer-kong
+    restart: unless-stopped
+    ports:
+      - "${KONG_HTTP_PORT:-8000}:8000/tcp"
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl
+    volumes:
+      - ./volumes/kong/kong.yml:/var/lib/kong/kong.yml:ro
+    depends_on:
+      - auth
+      - rest
+
+volumes:
+  mailer-db-data:
+    driver: local
