@@ -9,25 +9,44 @@ export async function POST(request: Request) {
   // Validate cron secret to prevent unauthorized IMAP access
   const authHeader = request.headers.get('authorization');
   let isAuthorized = false;
+  let orgIds: string[] = [];
+
   if (authHeader === `Bearer ${process.env.CRON_SECRET}`) {
     isAuthorized = true;
   } else {
     const supabaseAuth = await createClient();
     const { data: { user } } = await supabaseAuth.auth.getUser();
-    if (user) isAuthorized = true;
+    if (user) {
+      isAuthorized = true;
+      const { data: orgs } = await supabaseAuth.from('organizations').select('id');
+      if (orgs) {
+        orgIds = orgs.map(o => o.id);
+      }
+    }
   }
 
   if (!isAuthorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // If user-authenticated but has no organizations, return empty results
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}` && orgIds.length === 0) {
+    return NextResponse.json({ results: [] });
+  }
+
   const supabase = createServiceClient();
 
   // Get all active SMTP configs with IMAP credentials
-  const { data: configs, error: configError } = await supabase
+  let query = supabase
     .from('smtp_configs')
     .select('*')
     .not('imap_host', 'is', null);
+
+  if (orgIds.length > 0) {
+    query = query.in('organization_id', orgIds);
+  }
+
+  const { data: configs, error: configError } = await query;
 
   if (configError || !configs) {
     return NextResponse.json({ error: 'Failed to fetch IMAP configs' }, { status: 500 });

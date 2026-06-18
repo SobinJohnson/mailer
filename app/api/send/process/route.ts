@@ -7,23 +7,36 @@ export async function POST(request: Request) {
   // Validate cron secret to prevent unauthorized trigger
   const authHeader = request.headers.get('authorization');
   let isAuthorized = false;
+  let orgIds: string[] = [];
+
   if (authHeader === `Bearer ${process.env.CRON_SECRET}`) {
     isAuthorized = true;
   } else {
     const supabaseAuth = await createClient();
     const { data: { user } } = await supabaseAuth.auth.getUser();
-    if (user) isAuthorized = true;
+    if (user) {
+      isAuthorized = true;
+      const { data: orgs } = await supabaseAuth.from('organizations').select('id');
+      if (orgs) {
+        orgIds = orgs.map(o => o.id);
+      }
+    }
   }
 
   if (!isAuthorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // If user-authenticated but has no organizations, return empty results
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}` && orgIds.length === 0) {
+    return NextResponse.json({ processed: 0 });
+  }
+
   const supabase = createServiceClient();
   const now = new Date().toISOString();
 
   // Fetch due recipients
-  const { data: due, error: fetchError } = await supabase
+  let query = supabase
     .from('campaign_recipients')
     .select(`
       *,
@@ -39,8 +52,13 @@ export async function POST(request: Request) {
       )
     `)
     .eq('status', 'queued')
-    .lte('scheduled_send', now)
-    .limit(10);
+    .lte('scheduled_send', now);
+
+  if (orgIds.length > 0) {
+    query = query.in('organization_id', orgIds);
+  }
+
+  const { data: due, error: fetchError } = await query.limit(10);
 
   if (fetchError) {
     console.error('Queue fetch error:', fetchError);

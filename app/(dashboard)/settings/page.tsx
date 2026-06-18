@@ -6,13 +6,30 @@ export const dynamic = 'force-dynamic';
 export default async function SettingsPage() {
   const supabase = await createClient();
   
-  const { data: configs, error } = await supabase
-    .from('smtp_configs')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const [userRes, configsRes] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from('smtp_configs')
+      .select('*')
+      .order('created_at', { ascending: false })
+  ]);
 
-  if (error) {
-    console.error('Error fetching SMTP configs:', error);
+  const user = userRes.data.user;
+  const configs = configsRes.data || [];
+
+  if (configsRes.error) {
+    console.error('Error fetching SMTP configs:', configsRes.error);
+  }
+
+  // Fetch organization membership details
+  let orgMember: any = null;
+  if (user) {
+    const { data } = await supabase
+      .from('organization_members')
+      .select('role, organization:organizations(name)')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    orgMember = data;
   }
 
   return (
@@ -23,8 +40,33 @@ export default async function SettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-8">
+        {/* Account and Workspace Info */}
         <div className="bg-background border border-border rounded-[18px] p-8 shadow-sm">
-          <SmtpConfigForm configs={configs || []} />
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-[20px] font-semibold tracking-[-0.3px] text-foreground">Account & Workspace</h2>
+              <p className="text-[14px] text-muted-foreground mt-0.5">Your personal credentials and active workspace.</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+              <div className="space-y-1">
+                <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground/80">Logged in as</p>
+                <p className="text-[15px] font-medium text-foreground">{user?.email}</p>
+                <p className="text-[11px] text-muted-foreground">ID: {user?.id}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground/80">Active Workspace</p>
+                <p className="text-[15px] font-medium text-foreground">
+                  {orgMember?.organization?.name || 'Default Workspace'}
+                </p>
+                <p className="text-[11px] text-muted-foreground">Role: <span className="capitalize">{orgMember?.role || 'owner'}</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-background border border-border rounded-[18px] p-8 shadow-sm">
+          <SmtpConfigForm configs={configs} />
         </div>
 
         <div className="bg-background border border-border rounded-[18px] p-8 shadow-sm">

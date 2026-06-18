@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createServiceClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 
 const groupSchema = z.object({
@@ -10,7 +10,7 @@ const groupSchema = z.object({
 });
 
 export async function GET() {
-  const supabase = createServiceClient();
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from('contact_groups')
@@ -31,7 +31,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const supabase = createServiceClient();
+  const supabase = await createClient();
 
   try {
     const body = await request.json();

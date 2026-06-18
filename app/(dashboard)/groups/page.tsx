@@ -1,10 +1,10 @@
-import { createServiceClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { GroupsManager } from '@/components/groups/GroupsManager';
 
 export const dynamic = 'force-dynamic';
 
 export default async function GroupsPage() {
-  const supabase = createServiceClient();
+  const supabase = await createClient();
 
   const [groupsRes, companiesRes] = await Promise.all([
     supabase

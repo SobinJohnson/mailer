@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createServiceClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 
 const updateGroupSchema = z.object({
@@ -10,7 +10,7 @@ const updateGroupSchema = z.object({
 });
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = createServiceClient();
+  const supabase = await createClient();
   const { id } = await params;
 
   const { data, error } = await supabase
@@ -30,7 +30,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = createServiceClient();
+  const supabase = await createClient();
   const { id } = await params;
 
   try {
@@ -72,7 +72,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = createServiceClient();
+  const supabase = await createClient();
   const { id } = await params;
 
   const { error } = await supabase.from('contact_groups').delete().eq('id', id);
