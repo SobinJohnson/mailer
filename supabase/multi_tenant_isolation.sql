@@ -141,3 +141,56 @@ CREATE POLICY "Tenant isolation for daily_schedules" ON public.daily_schedules
 
 CREATE POLICY "Tenant isolation for contact_group_members" ON public.contact_group_members
   FOR ALL TO authenticated USING (group_id IN (SELECT id FROM public.contact_groups));
+
+-- 9. Automatic Workspace Provisioning on User Signup
+-- Create a trigger function to handle new user signup
+CREATE OR REPLACE FUNCTION public.handle_new_user_signup()
+RETURNS TRIGGER AS $$
+DECLARE
+  new_org_id UUID;
+  org_name TEXT;
+BEGIN
+  -- Determine organization name from email
+  org_name := COALESCE(split_part(NEW.email, '@', 1) || '''s Workspace', 'Personal Workspace');
+  
+  -- Create a new organization for the user
+  INSERT INTO public.organizations (name)
+  VALUES (org_name)
+  RETURNING id INTO new_org_id;
+
+  -- Add the user as owner of the organization
+  INSERT INTO public.organization_members (organization_id, user_id, role)
+  VALUES (new_org_id, NEW.id, 'owner');
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Bind the trigger to auth.users (runs AFTER INSERT)
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_signup();
+
+-- Backfill existing users who don't have an organization membership
+DO $$
+DECLARE
+  user_rec RECORD;
+  new_org_id UUID;
+  org_name TEXT;
+BEGIN
+  FOR user_rec IN 
+    SELECT id, email FROM auth.users 
+    WHERE id NOT IN (SELECT user_id FROM public.organization_members)
+  LOOP
+    org_name := COALESCE(split_part(user_rec.email, '@', 1) || '''s Workspace', 'Personal Workspace');
+    
+    INSERT INTO public.organizations (name)
+    VALUES (org_name)
+    RETURNING id INTO new_org_id;
+    
+    INSERT INTO public.organization_members (organization_id, user_id, role)
+    VALUES (new_org_id, user_rec.id, 'owner');
+  END LOOP;
+END $$;
+
