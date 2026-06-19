@@ -134,9 +134,9 @@ export function TemplateEditor({ template, isNew = false }: TemplateEditorProps)
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12">
       {/* Header */}
-      <div className="flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md py-4 z-10 border-b border-border">
-        <div className="flex items-center gap-4">
-          <Link href="/templates">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sticky top-0 bg-background/80 backdrop-blur-md py-4 z-10 border-b border-border">
+        <div className="flex items-center gap-4 w-full sm:w-auto">
+          <Link href="/templates" className="shrink-0">
             <Button variant="ghost" size="icon" className="rounded-full w-10 h-10 hover:bg-secondary">
               <ChevronLeft className="w-5 h-5 text-foreground" />
             </Button>
@@ -144,11 +144,11 @@ export function TemplateEditor({ template, isNew = false }: TemplateEditorProps)
           <Input 
             value={name} 
             onChange={(e) => setName(e.target.value)}
-            className="text-[28px] font-semibold tracking-[-0.374px] border-none shadow-none px-0 focus-visible:ring-0 w-[400px] text-foreground bg-transparent"
+            className="text-[24px] sm:text-[28px] font-semibold tracking-[-0.374px] border-none shadow-none px-0 focus-visible:ring-0 flex-1 sm:w-[400px] text-foreground bg-transparent"
             placeholder="Template Name"
           />
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap w-full sm:w-auto justify-end">
           {!isNew && (
             <Button 
               onClick={async () => {
@@ -165,16 +165,16 @@ export function TemplateEditor({ template, isNew = false }: TemplateEditorProps)
               }}
               variant="outline" 
               size="sm" 
-              className="rounded-full h-10 px-5 text-[14px] text-destructive border-destructive/20 hover:bg-destructive/10"
+              className="rounded-full h-10 px-4 sm:px-5 text-[13px] sm:text-[14px] text-destructive border-destructive/20 hover:bg-destructive/10"
             >
               Delete
             </Button>
           )}
-          <Button variant="outline" size="sm" className="rounded-full h-10 px-5 text-[14px]">
+          <Button variant="outline" size="sm" className="rounded-full h-10 px-4 sm:px-5 text-[13px] sm:text-[14px]">
             <Sparkles className="w-4 h-4 mr-2 text-primary" />
             AI Rewrite
           </Button>
-          <Button onClick={handleSave} disabled={isSaving} size="sm" className="rounded-full h-10 px-6 bg-foreground hover:bg-foreground/90 text-background text-[14px]">
+          <Button onClick={handleSave} disabled={isSaving} size="sm" className="rounded-full h-10 px-5 sm:px-6 bg-foreground hover:bg-foreground/90 text-background text-[13px] sm:text-[14px]">
             {isSaving ? 'Saving...' : 'Save Template'}
             <Save className="w-4 h-4 ml-2" />
           </Button>

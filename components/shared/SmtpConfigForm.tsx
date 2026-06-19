@@ -173,7 +173,7 @@ export function SmtpConfigForm({ configs }: SmtpConfigFormProps) {
         </div>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-[13px] text-muted-foreground">Label</Label>
               <Input 
@@ -193,7 +193,7 @@ export function SmtpConfigForm({ configs }: SmtpConfigFormProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-[13px] text-muted-foreground">Username (Email)</Label>
               <Input 
@@ -214,7 +214,7 @@ export function SmtpConfigForm({ configs }: SmtpConfigFormProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-[13px] text-muted-foreground">From Email</Label>
               <Input 
@@ -235,8 +235,8 @@ export function SmtpConfigForm({ configs }: SmtpConfigFormProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="space-y-2 col-span-2 sm:col-span-1">
               <Label className="text-[13px] text-muted-foreground">Port</Label>
               <Input 
                 type="number"
@@ -282,7 +282,7 @@ export function SmtpConfigForm({ configs }: SmtpConfigFormProps) {
           <div className="pt-6 border-t border-border mt-6">
             <h3 className="text-[14px] font-semibold text-foreground mb-4">IMAP Settings (Optional for Reply Tracking)</h3>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[13px] text-muted-foreground">IMAP Host</Label>
                   <Input 
@@ -302,7 +302,7 @@ export function SmtpConfigForm({ configs }: SmtpConfigFormProps) {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[13px] text-muted-foreground">IMAP Username</Label>
                   <Input 
@@ -325,7 +325,7 @@ export function SmtpConfigForm({ configs }: SmtpConfigFormProps) {
             </div>
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <Button 
               variant="outline" 
               onClick={handleTest} 
@@ -361,17 +361,17 @@ export function SmtpConfigForm({ configs }: SmtpConfigFormProps) {
             </div>
           ) : (
             configs.map(config => (
-              <div key={config.id} className={`p-4 border ${editingId === config.id ? 'border-primary shadow-md' : 'border-border'} rounded-[14px] bg-background shadow-sm flex items-start justify-between transition-all`}>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-[14px] text-foreground">{config.label}</h3>
+              <div key={config.id} className={`p-4 border ${editingId === config.id ? 'border-primary shadow-md' : 'border-border'} rounded-[14px] bg-background shadow-sm flex flex-col sm:flex-row sm:items-start justify-between gap-4 transition-all`}>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <h3 className="font-semibold text-[14px] text-foreground truncate">{config.label}</h3>
                     {config.is_default && (
                       <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wide">Default</span>
                     )}
                   </div>
-                  <p className="text-[13px] text-muted-foreground">{config.from_email} ({config.host}:{config.port})</p>
+                  <p className="text-[13px] text-muted-foreground truncate">{config.from_email} ({config.host}:{config.port})</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 shrink-0 self-end sm:self-auto">
                   <Button variant="outline" size="sm" onClick={() => handleEdit(config)} className="h-7 text-[12px] px-2">
                     Edit
                   </Button>
