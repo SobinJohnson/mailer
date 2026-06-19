@@ -102,7 +102,15 @@ DROP POLICY IF EXISTS "Tenant isolation for contact groups" ON public.contact_gr
 DROP POLICY IF EXISTS "Tenant isolation for daily_schedules" ON public.daily_schedules;
 DROP POLICY IF EXISTS "Tenant isolation for contact_group_members" ON public.contact_group_members;
 
--- 8. Define strict RLS policies
+-- 8. Define strict RLS policies and prepare tables
+ALTER TABLE public.companies ALTER COLUMN organization_id DROP DEFAULT;
+ALTER TABLE public.contacts ALTER COLUMN organization_id DROP DEFAULT;
+ALTER TABLE public.email_templates ALTER COLUMN organization_id DROP DEFAULT;
+ALTER TABLE public.smtp_configs ALTER COLUMN organization_id DROP DEFAULT;
+ALTER TABLE public.campaigns ALTER COLUMN organization_id DROP DEFAULT;
+ALTER TABLE public.campaign_recipients ALTER COLUMN organization_id DROP DEFAULT;
+ALTER TABLE public.send_log ALTER COLUMN organization_id DROP DEFAULT;
+
 ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organization_members ENABLE ROW LEVEL SECURITY;
 
