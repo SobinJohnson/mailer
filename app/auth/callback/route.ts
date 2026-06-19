@@ -22,7 +22,12 @@ export async function GET(request: Request) {
           setAll(cookiesToSet) {
             try {
               cookiesToSet.forEach(({ name, value, options }) => {
-                cookieStore.set(name, value, options);
+                try {
+                  cookieStore.set(name, value, options);
+                } catch {
+                  // Ignore cookieStore.set errors in GET route handlers, 
+                  // as setting cookies directly on the request cookie store is read-only.
+                }
                 response.cookies.set(name, value, options);
               });
             } catch {
