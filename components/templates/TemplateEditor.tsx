@@ -111,9 +111,20 @@ export function TemplateEditor({ template, isNew = false }: TemplateEditorProps)
         method: 'POST',
         body: formData,
       });
-      const data = await res.json();
       
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        let errorMsg = 'Upload failed';
+        try {
+          const json = await res.json();
+          errorMsg = json.error || errorMsg;
+        } catch {
+          const text = await res.text();
+          errorMsg = text || errorMsg;
+        }
+        throw new Error(errorMsg);
+      }
+
+      const data = await res.json();
 
       // Add to attachments
       setAttachments(prev => [...prev, {

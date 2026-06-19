@@ -35,13 +35,23 @@ export function AttachmentUploader({ onUploadSuccess, accept = '.pdf,.doc,.docx,
         body: formData,
       });
 
-      if (!res.ok) throw new Error('Upload failed');
+      if (!res.ok) {
+        let errorMsg = 'Upload failed';
+        try {
+          const json = await res.json();
+          errorMsg = json.error || errorMsg;
+        } catch {
+          const text = await res.text();
+          errorMsg = text || errorMsg;
+        }
+        throw new Error(errorMsg);
+      }
 
       const { data } = await res.json();
       onUploadSuccess(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to upload file');
+      alert('Failed to upload file: ' + err.message);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
