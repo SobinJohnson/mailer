@@ -111,6 +111,10 @@ ALTER TABLE public.campaigns ALTER COLUMN organization_id DROP DEFAULT;
 ALTER TABLE public.campaign_recipients ALTER COLUMN organization_id DROP DEFAULT;
 ALTER TABLE public.send_log ALTER COLUMN organization_id DROP DEFAULT;
 
+-- Scope contacts email uniqueness to organization to allow different tenants to have same emails
+DROP INDEX IF EXISTS public.contacts_email_unique;
+CREATE UNIQUE INDEX IF NOT EXISTS contacts_email_org_unique ON public.contacts(organization_id, email);
+
 ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organization_members ENABLE ROW LEVEL SECURITY;
 
