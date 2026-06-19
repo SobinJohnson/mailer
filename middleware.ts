@@ -33,6 +33,7 @@ export async function middleware(request: NextRequest) {
   const isAuthPage = request.nextUrl.pathname.startsWith('/login');
   const isSetupPage = request.nextUrl.pathname.startsWith('/setup');
   const isApiRoute = request.nextUrl.pathname.startsWith('/api');
+  const isAuthCallback = request.nextUrl.pathname.startsWith('/auth');
 
   // Routes that handle their own auth (via CRON_SECRET bearer token)
   const isSelfAuthedRoute =
@@ -47,8 +48,8 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Redirect unauthenticated users to login (except auth pages, setup page)
-  if (!user && !isAuthPage && !isSetupPage) {
+  // Redirect unauthenticated users to login (except auth pages, setup page, auth callback)
+  if (!user && !isAuthPage && !isSetupPage && !isAuthCallback) {
     // For API routes, return 401 instead of redirect
     if (isApiRoute) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
