@@ -277,6 +277,17 @@ export function SmtpConfigForm({ configs }: SmtpConfigFormProps) {
               className="w-full min-h-[100px] rounded-[8px] text-[14px] bg-background border border-input p-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-background resize-y"
             />
             <p className="text-[12px] text-muted-foreground">Use {'{{signature}}'} in your templates to inject this HTML.</p>
+            
+            {/* Signature Preview */}
+            <div className="mt-3 space-y-1.5">
+              <Label className="text-[12px] text-muted-foreground">Signature Preview</Label>
+              <div 
+                className="p-4 border border-border rounded-[8px] bg-secondary/10 min-h-[60px] text-[14px] text-foreground overflow-auto"
+                dangerouslySetInnerHTML={{ 
+                  __html: formData.signature_html || '<p class="text-muted-foreground italic text-[13px]">No signature content. Preview will show up here...</p>' 
+                }}
+              />
+            </div>
           </div>
 
           {testResult && (
