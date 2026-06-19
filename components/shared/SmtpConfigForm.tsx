@@ -144,13 +144,20 @@ export function SmtpConfigForm({ configs }: SmtpConfigFormProps) {
         body: JSON.stringify(payload),
       });
       
-      if (!res.ok) throw new Error('Failed to save config');
+      if (!res.ok) {
+        let errMsg = 'Failed to save config';
+        try {
+          const errData = await res.json();
+          errMsg = errData.error || JSON.stringify(errData);
+        } catch {}
+        throw new Error(errMsg);
+      }
       
       cancelEdit();
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to save configuration');
+      alert(`Failed to save configuration: ${err.message}`);
     } finally {
       setIsSaving(false);
     }
