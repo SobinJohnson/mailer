@@ -59,12 +59,13 @@ export async function POST(_req: Request, { params }: Params) {
 
       // Resolve the concrete date for this day_of_week
       const offset = DAY_OFFSETS[schedule.day_of_week] ?? 0;
-      const baseDate = new Date(plan.start_date + 'T00:00:00');
-      baseDate.setDate(baseDate.getDate() + offset);
+      const [yr, mo, dy] = plan.start_date.split('-').map(Number);
+      const baseDate = new Date(Date.UTC(yr, mo - 1, dy));
+      baseDate.setUTCDate(baseDate.getUTCDate() + offset);
+      const targetDateStr = baseDate.toISOString().split('T')[0];
 
-      const [h, m] = (schedule.send_time || '09:00').split(':').map(Number);
-      const startAt = new Date(baseDate);
-      startAt.setHours(h || 9, m || 0, 0, 0);
+      const [hStr, mStr] = (schedule.send_time || '09:00').split(':');
+      const startAt = new Date(`${targetDateStr}T${hStr || '09'}:${mStr || '00'}:00+05:30`);
 
       const contactIds = members.map(m => m.contact_id);
 

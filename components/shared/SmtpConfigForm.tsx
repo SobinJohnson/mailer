@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Check, Loader2, Server, ServerCrash } from 'lucide-react';
 import { SmtpConfig } from '@/types';
+import { toast } from 'sonner';
 
 interface SmtpConfigFormProps {
   configs: SmtpConfig[];
@@ -66,11 +67,12 @@ export function SmtpConfigForm({ configs }: SmtpConfigFormProps) {
     try {
       const res = await fetch(`/api/smtp/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
+      toast.success('Connection deleted successfully');
       router.refresh();
       if (editingId === id) cancelEdit();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to delete configuration');
+      toast.error('Failed to delete configuration', { description: err.message });
     }
   };
 
@@ -153,11 +155,12 @@ export function SmtpConfigForm({ configs }: SmtpConfigFormProps) {
         throw new Error(errMsg);
       }
       
+      toast.success('Connection saved successfully');
       cancelEdit();
       router.refresh();
     } catch (err: any) {
       console.error(err);
-      alert(`Failed to save configuration: ${err.message}`);
+      toast.error('Failed to save configuration', { description: err.message });
     } finally {
       setIsSaving(false);
     }

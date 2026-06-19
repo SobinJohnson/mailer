@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { File, UploadCloud, X, Loader2 } from 'lucide-react';
 import { Attachment } from '@/types';
+import { toast } from 'sonner';
 
 interface AttachmentUploaderProps {
   onUploadSuccess: (attachment: Attachment) => void;
@@ -20,7 +21,7 @@ export function AttachmentUploader({ onUploadSuccess, accept = '.pdf,.doc,.docx,
     if (!file) return;
 
     if (file.size > maxSizeMB * 1024 * 1024) {
-      alert(`File size exceeds ${maxSizeMB}MB limit`);
+      toast.error(`File size exceeds ${maxSizeMB}MB limit`);
       return;
     }
 
@@ -48,10 +49,11 @@ export function AttachmentUploader({ onUploadSuccess, accept = '.pdf,.doc,.docx,
       }
 
       const { data } = await res.json();
+      toast.success('File uploaded successfully');
       onUploadSuccess(data);
     } catch (err: any) {
       console.error(err);
-      alert('Failed to upload file: ' + err.message);
+      toast.error('Failed to upload file', { description: err.message });
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

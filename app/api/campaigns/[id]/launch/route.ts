@@ -43,13 +43,13 @@ export async function POST(
       const timeParts = (campaign.send_time || '09:00').split(':');
       const hourStr = timeParts[0] || '09';
       const minStr = timeParts[1] || '00';
-      startAt = new Date(`${campaign.start_date}T${hourStr}:${minStr}:00`);
+      startAt = new Date(`${campaign.start_date}T${hourStr}:${minStr}:00+05:30`);
     } else {
       startAt = campaign.scheduled_at ? new Date(campaign.scheduled_at) : new Date();
     }
 
     const endAt = campaign.end_date 
-      ? new Date(`${campaign.end_date}T23:59:59`) 
+      ? new Date(`${campaign.end_date}T23:59:59+05:30`) 
       : null;
 
     // Calculate spread out times

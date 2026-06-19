@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, Save, Sparkles, PenTool, Image as ImageIcon } from 'lucide-react';
 import { EmailTemplate } from '@/types';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 interface TemplateEditorProps {
   template: EmailTemplate;
@@ -86,13 +87,15 @@ export function TemplateEditor({ template, isNew = false }: TemplateEditorProps)
       if (!res.ok) throw new Error('Failed to save');
       
       const { data } = await res.json();
+      toast.success('Template saved successfully');
       if (isNew) {
         router.push(`/templates/${data.id}`);
       } else {
         router.refresh();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      toast.error('Failed to save template', { description: error.message });
     } finally {
       setIsSaving(false);
     }
@@ -132,7 +135,7 @@ export function TemplateEditor({ template, isNew = false }: TemplateEditorProps)
         path: data.url // Nodemailer uses 'path' for URLs
       }]);
     } catch (err: any) {
-      alert('Upload failed: ' + err.message);
+      toast.error('Upload failed', { description: err.message });
     } finally {
       setIsUploading(false);
     }
@@ -169,9 +172,9 @@ export function TemplateEditor({ template, isNew = false }: TemplateEditorProps)
                   if (!res.ok) throw new Error('Failed to delete');
                   router.push('/templates');
                   router.refresh();
-                } catch (err) {
+                } catch (err: any) {
                   console.error(err);
-                  alert('Failed to delete template');
+                  toast.error('Failed to delete template', { description: err.message });
                 }
               }}
               variant="outline" 

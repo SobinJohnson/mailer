@@ -17,8 +17,9 @@ export async function POST(_req: Request, { params }: Params) {
   if (srcErr || !source) return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
 
   // Compute next week's Monday
-  const srcDate = new Date(source.start_date + 'T00:00:00');
-  srcDate.setDate(srcDate.getDate() + 7);
+  const [yr, mo, dy] = source.start_date.split('-').map(Number);
+  const srcDate = new Date(Date.UTC(yr, mo - 1, dy));
+  srcDate.setUTCDate(srcDate.getUTCDate() + 7);
   const nextStartDate = srcDate.toISOString().split('T')[0];
 
   // Create the new plan
