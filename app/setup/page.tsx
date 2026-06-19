@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Cloud, Server, Download, CheckCircle2, XCircle, Loader2, ArrowRight, Copy, ExternalLink } from 'lucide-react';
+import { toast } from 'sonner';
 
 type Mode = 'choose' | 'supabase' | 'selfhosted';
 type TestStatus = 'idle' | 'testing' | 'success' | 'error';
@@ -37,8 +38,8 @@ export default function SetupPage() {
         setSupabaseAnonKey(data.anonKey);
         setSupabaseServiceKey(data.serviceRoleKey);
       }
-    } catch {
-      alert('Failed to generate keys');
+    } catch (err: any) {
+      toast.error('Failed to generate keys', { description: err.message });
     } finally {
       setIsGenerating(false);
     }
@@ -115,8 +116,8 @@ SERVICE_ROLE_KEY=${generatedKeys.serviceRoleKey}
       if (res.ok) {
         window.location.href = '/login';
       }
-    } catch {
-      alert('Failed to save configuration.');
+    } catch (err: any) {
+      toast.error('Failed to save configuration', { description: err.message });
     }
   };
 

@@ -76,8 +76,10 @@ export interface Campaign {
 
 export interface CampaignAttachment {
   filename: string;
-  storage_path: string;
-  size: number;
+  storage_path?: string;
+  storagePath?: string;
+  path?: string;
+  size?: number;
 }
 
 export interface CampaignRecipient {

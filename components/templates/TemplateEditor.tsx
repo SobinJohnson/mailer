@@ -132,7 +132,9 @@ export function TemplateEditor({ template, isNew = false }: TemplateEditorProps)
       // Add to attachments
       setAttachments(prev => [...prev, {
         filename: data.filename,
-        path: data.url // Nodemailer uses 'path' for URLs
+        path: data.url, // Nodemailer uses 'path' for URLs
+        storage_path: data.storagePath,
+        storagePath: data.storagePath
       }]);
     } catch (err: any) {
       toast.error('Upload failed', { description: err.message });

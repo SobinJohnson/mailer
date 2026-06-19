@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from 'sonner';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -284,7 +285,7 @@ function GroupEditor({
       }
       onClose();
     } catch (err: any) {
-      alert(`Failed to save group: ${err.message}`);
+      toast.error('Failed to save group', { description: err.message });
     } finally {
       setSaving(false);
     }
@@ -537,7 +538,7 @@ export function GroupsManager({ initialGroups, companies }: GroupsManagerProps) 
     if (res.ok) {
       setGroups(prev => prev.filter(g => g.id !== id));
     } else {
-      alert('Failed to delete group.');
+      toast.error('Failed to delete group');
     }
   };
 

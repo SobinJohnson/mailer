@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from 'sonner';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -26,9 +27,9 @@ export function CompanyDetailActions({ company }: CompanyDetailActionsProps) {
       if (!res.ok) throw new Error('Failed to delete company');
       router.push('/companies');
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to delete company');
+      toast.error('Failed to delete company', { description: err.message });
       setIsDeleting(false);
     }
   };

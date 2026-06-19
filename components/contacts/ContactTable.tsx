@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from 'sonner';
 import { useState } from 'react';
 import {
   Table, TableBody, TableCell,
@@ -72,9 +73,9 @@ export function ContactTable({ initialContacts, companies }: ContactTableProps) 
       const res = await fetch(`/api/contacts/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to delete contact');
+      toast.error('Failed to delete contact', { description: err.message });
     }
   };
 

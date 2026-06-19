@@ -19,6 +19,7 @@ import { useClientTable } from '@/hooks/useClientTable';
 import { PaginationControls } from '@/components/shared/PaginationControls';
 import { ArrowUpDown, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 interface RepliesTableProps {
   replies: any[];
@@ -62,10 +63,10 @@ export function RepliesTable({ replies }: RepliesTableProps) {
       if (!res.ok) throw new Error(data.error || 'Failed to sync');
 
       const totalMatches = data.results?.reduce((acc: number, r: any) => acc + (r.matches || 0), 0) || 0;
-      alert(`Sync complete! Found ${totalMatches} new replies.`);
+      toast.success('Sync complete', { description: `Found ${totalMatches} new replies.` });
       router.refresh();
     } catch (err: any) {
-      alert('Error during sync: ' + err.message);
+      toast.error('Sync failed', { description: err.message });
     } finally {
       setIsSyncing(false);
     }

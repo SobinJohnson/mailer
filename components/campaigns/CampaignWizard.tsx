@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from 'sonner';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -132,7 +133,7 @@ export function CampaignWizard({ templates, smtpConfigs, companies, groups }: Ca
       router.push(`/campaigns/${campaign.id}`);
     } catch (err: any) {
       console.error(err);
-      alert(`Error launching campaign: ${err.message}`);
+      toast.error('Failed to launch campaign', { description: err.message });
       setIsSubmitting(false);
     }
   };

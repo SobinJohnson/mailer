@@ -36,9 +36,21 @@ export async function sendMail({
     }
   });
 
-  // Fetch attachment buffers from Supabase Storage
+  // Fetch attachment buffers from Supabase Storage or resolve URLs
   const resolvedAttachments = await Promise.all(
     attachments.map(async (att) => {
+      const storagePath = att.storage_path || att.storagePath;
+
+      if (!storagePath) {
+        // If there's no storage path but there is a signed/public URL path, let Nodemailer fetch it directly.
+        const pathVal = att.path;
+        if (pathVal && (pathVal.startsWith('http://') || pathVal.startsWith('https://'))) {
+          return { filename: att.filename, path: pathVal };
+        }
+        console.error(`Attachment ${att.filename} has no storage path or valid URL path:`, att);
+        throw new Error(`Invalid attachment path for ${att.filename}`);
+      }
+
       // Use service key to bypass RLS since the bucket is private
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -47,7 +59,7 @@ export async function sendMail({
       
       const { data, error } = await supabase.storage
         .from('campaign-attachments')
-        .download(att.storage_path);
+        .download(storagePath);
 
       if (error || !data) {
         console.error(`Failed to download attachment ${att.filename}:`, error);

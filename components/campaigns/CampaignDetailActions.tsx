@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from 'sonner';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -29,9 +30,9 @@ export function CampaignDetailActions({ campaignId, status }: CampaignDetailActi
       if (!res.ok) throw new Error('Failed to delete campaign');
       router.push('/campaigns');
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to delete campaign');
+      toast.error('Failed to delete campaign', { description: err.message });
       setIsDeleting(false);
     }
   };
@@ -42,11 +43,13 @@ export function CampaignDetailActions({ campaignId, status }: CampaignDetailActi
       const res = await fetch('/api/send/manual', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      alert(`Processed ${data.processed || 0} queued emails. Sent: ${data.sent || 0}, Failed: ${data.failed || 0}`);
+      toast.success('Queue processing complete', {
+        description: `Processed ${data.processed || 0} queued emails. Sent: ${data.sent || 0}, Failed: ${data.failed || 0}`
+      });
       router.refresh();
     } catch (err: any) {
       console.error(err);
-      alert('Failed to process queue: ' + err.message);
+      toast.error('Failed to process queue', { description: err.message });
     } finally {
       setIsProcessing(false);
     }
