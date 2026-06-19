@@ -103,6 +103,9 @@ DROP POLICY IF EXISTS "Tenant isolation for daily_schedules" ON public.daily_sch
 DROP POLICY IF EXISTS "Tenant isolation for contact_group_members" ON public.contact_group_members;
 
 -- 8. Define strict RLS policies
+ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.organization_members ENABLE ROW LEVEL SECURITY;
+
 CREATE POLICY "Users can access their organizations" ON public.organizations
   FOR ALL TO authenticated USING (id IN (SELECT public.get_user_organizations()));
 
