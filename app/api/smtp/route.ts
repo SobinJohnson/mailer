@@ -59,12 +59,14 @@ export async function POST(request: Request) {
     if (error) throw error;
 
     return NextResponse.json({ data }, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('SMTP Save Error:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 });
     }
+    const message = error?.message || (typeof error === 'string' ? error : JSON.stringify(error));
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { error: message || 'Unknown error' },
       { status: 500 }
     );
   }
