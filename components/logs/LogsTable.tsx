@@ -147,7 +147,7 @@ export function LogsTable({ logs }: LogsTableProps) {
 
       <Dialog open={!!selectedLog} onOpenChange={(open) => !open && setSelectedLog(null)}>
         {selectedLog && (
-          <DialogContent className="sm:max-w-4xl bg-background rounded-[16px] border-border shadow-2xl p-0 overflow-hidden">
+          <DialogContent className="sm:max-w-5xl bg-background rounded-[16px] border-border shadow-2xl p-0 overflow-hidden">
             <DialogHeader className="p-6 border-b border-border bg-secondary/30">
               <div className="flex items-center gap-3">
                 <Badge variant="outline" className={`font-normal rounded-full ${

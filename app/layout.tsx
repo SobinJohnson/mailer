@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BackgroundWorker } from "@/components/shared/BackgroundWorker";
+import { ThemeProvider } from "@/components/shared/ThemeProvider";
 import "./globals.css";
 
 const inter = Inter({
@@ -23,25 +24,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+    <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col font-sans bg-background text-foreground">
-        <TooltipProvider delay={300}>
-          {children}
-        </TooltipProvider>
-        <Toaster
-          position="bottom-right"
-          toastOptions={{
-            style: {
-              background: 'var(--background)',
-              border: '1px solid var(--border)',
-              color: 'var(--foreground)',
-              borderRadius: '12px',
-              fontSize: '14px',
-              padding: '12px 16px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-            },
-          }}
-        />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <TooltipProvider delay={300}>
+            {children}
+          </TooltipProvider>
+          <Toaster position="bottom-right" />
+        </ThemeProvider>
         <BackgroundWorker />
       </body>
     </html>

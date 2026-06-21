@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useTheme } from 'next-themes';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +29,8 @@ import {
   ChevronLeft,
   UsersRound,
   CalendarDays,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { GlobalSearch } from '@/components/shared/GlobalSearch';
 import { ManualTriggers } from '@/components/shared/ManualTriggers';
@@ -112,9 +115,15 @@ export default function DashboardLayout({
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hideCampaigns, setHideCampaigns] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const [themeMounted, setThemeMounted] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+
+  useEffect(() => {
+    setThemeMounted(true);
+  }, []);
 
   useEffect(() => {
     const checkSettings = () => {
@@ -382,8 +391,22 @@ export default function DashboardLayout({
           </div>
 
           {/* Right — breadcrumb / user hint & DB Mode */}
-          <div className="hidden lg:flex items-center gap-4">
-            <div className={`px-2 py-1 rounded-[6px] text-[11px] font-medium border flex items-center gap-1.5
+          <div className="flex items-center gap-2.5 lg:gap-4 ml-auto">
+            {themeMounted && (
+              <button
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="p-1.5 rounded-[8px] text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors cursor-pointer"
+                title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              >
+                {theme === 'dark' ? (
+                  <Sun className="w-[17px] h-[17px] text-amber-500" />
+                ) : (
+                  <Moon className="w-[17px] h-[17px]" />
+                )}
+              </button>
+            )}
+
+            <div className={`hidden lg:flex px-2 py-1 rounded-[6px] text-[11px] font-medium border items-center gap-1.5
               ${process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('.supabase.') 
                 ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
                 : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}
@@ -394,10 +417,12 @@ export default function DashboardLayout({
             
             {/* Show manual triggers ONLY when running on Local DB / Localhost */}
             {!process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('.supabase.') && (
-              <ManualTriggers />
+              <div className="hidden lg:block">
+                <ManualTriggers />
+              </div>
             )}
             
-            <span className="text-[12px] text-muted-foreground/60 ml-2">
+            <span className="hidden lg:inline text-[12px] text-muted-foreground/60">
               ⌘K to search
             </span>
           </div>

@@ -29,7 +29,7 @@ export default async function CampaignDetailPage({
       template:email_templates!campaigns_template_id_fkey(name),
       smtp_config:smtp_configs(label),
       recipients:campaign_recipients(
-        id, status, scheduled_send, sent_at, error_message,
+        id, status, scheduled_send, sent_at, error_message, email_snapshot,
         contact:contacts(id, first_name, last_name, email, company:companies(name))
       )
     `)
@@ -40,7 +40,14 @@ export default async function CampaignDetailPage({
     notFound();
   }
 
-  const recipients = campaign.recipients || [];
+  const recipients = (campaign.recipients || []).map((r: any) => ({
+    ...r,
+    campaign: {
+      name: campaign.name,
+      from_email: campaign.from_email,
+      smtp_config: campaign.smtp_config
+    }
+  }));
   const sent = recipients.filter((r: any) => r.status === 'sent').length;
   const failed = recipients.filter((r: any) => r.status === 'failed').length;
   const pending = recipients.filter((r: any) => r.status === 'pending' || r.status === 'queued').length;

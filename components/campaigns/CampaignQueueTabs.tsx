@@ -6,6 +6,12 @@ import {
   Table, TableBody, TableCell,
   TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -25,6 +31,8 @@ export function CampaignQueueTabs({ groupedRecipients }: CampaignQueueTabsProps)
   const [activeDate, setActiveDate] = useState<string>(
     dates.includes(today) ? today : (dates[0] || today)
   );
+
+  const [selectedRecipient, setSelectedRecipient] = useState<any | null>(null);
 
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
@@ -182,7 +190,11 @@ export function CampaignQueueTabs({ groupedRecipients }: CampaignQueueTabsProps)
                 </TableRow>
               ) : (
                 activeRecipients.map((r: any) => (
-                  <TableRow key={r.id}>
+                  <TableRow 
+                    key={r.id}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => setSelectedRecipient(r)}
+                  >
                     <TableCell>
                       <p className="font-medium text-foreground">{r.contact?.first_name} {r.contact?.last_name}</p>
                       <p className="text-[12px] text-muted-foreground">{r.contact?.email}</p>
@@ -218,6 +230,69 @@ export function CampaignQueueTabs({ groupedRecipients }: CampaignQueueTabsProps)
           </div>
         </div>
       </div>
+
+      <Dialog open={!!selectedRecipient} onOpenChange={(open) => !open && setSelectedRecipient(null)}>
+        {selectedRecipient && (
+          <DialogContent className="sm:max-w-5xl bg-background rounded-[16px] border-border shadow-2xl p-0 overflow-hidden">
+            <DialogHeader className="p-6 border-b border-border bg-secondary/30">
+              <div className="flex items-center gap-3">
+                <Badge variant="outline" className={`font-normal rounded-full ${
+                  selectedRecipient.status === 'sent' ? 'bg-green-500/10 text-green-700 border-green-500/20' :
+                  selectedRecipient.status === 'failed' ? 'bg-red-500/10 text-red-700 border-red-500/20' :
+                  selectedRecipient.status === 'queued' ? 'bg-primary/10 text-primary border-primary/20' :
+                  'bg-secondary text-muted-foreground border-border'
+                }`}>
+                  {selectedRecipient.status.toUpperCase()}
+                </Badge>
+                <DialogTitle className="text-[20px] font-semibold text-foreground">
+                  Send Details
+                </DialogTitle>
+              </div>
+            </DialogHeader>
+            <div className="p-6 overflow-y-auto max-h-[70vh] space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">To</p>
+                  <p className="text-[14px] text-foreground font-medium break-all">{selectedRecipient.contact?.email}</p>
+                </div>
+                <div>
+                  <p className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">From (SMTP)</p>
+                  <p className="text-[14px] text-foreground font-medium">{selectedRecipient.campaign?.smtp_config?.label || 'Unknown SMTP'}</p>
+                  <p className="text-[12px] text-muted-foreground break-all">{selectedRecipient.campaign?.from_email}</p>
+                </div>
+              </div>
+
+              {selectedRecipient.status === 'failed' && selectedRecipient.error_message && (
+                <div>
+                  <p className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Error Reason</p>
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-[8px] p-3 text-red-700 text-[13px] font-mono break-all">
+                    {selectedRecipient.error_message}
+                  </div>
+                </div>
+              )}
+
+              {selectedRecipient.email_snapshot ? (
+                <div className="space-y-4 border-t border-border pt-6 mt-6">
+                  <div>
+                    <p className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Subject</p>
+                    <p className="text-[14px] text-foreground font-medium">{selectedRecipient.email_snapshot.subject}</p>
+                  </div>
+                  <div>
+                    <p className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Message Body</p>
+                    <div className="bg-background border border-border rounded-[12px] p-4 text-[14px] text-foreground prose max-w-none">
+                      <div dangerouslySetInnerHTML={{ __html: selectedRecipient.email_snapshot.body_html }} />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-[13px] text-muted-foreground italic border-t border-border pt-6 mt-6">
+                  No snapshot available. The email may have failed before generation or is still pending snapshot creation.
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 }

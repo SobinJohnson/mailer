@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { Switch } from '@/components/ui/switch';
+import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 
 export function GeneralSettings() {
   const [hideCampaigns, setHideCampaigns] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     setHideCampaigns(localStorage.getItem('hideCampaigns') === 'true');
@@ -28,7 +30,7 @@ export function GeneralSettings() {
   if (!mounted) return null;
 
   return (
-    <div className="bg-background border border-border rounded-[18px] p-8 shadow-sm">
+    <div className="bg-background border border-border rounded-[18px] p-8 shadow-sm space-y-6 divide-y divide-border/60">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div className="space-y-1">
           <h2 className="text-[20px] font-semibold tracking-[-0.3px] text-foreground">General Preferences</h2>
@@ -43,6 +45,27 @@ export function GeneralSettings() {
           <Switch
             checked={hideCampaigns}
             onCheckedChange={handleToggle}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-6">
+        <div className="space-y-1">
+          <h2 className="text-[20px] font-semibold tracking-[-0.3px] text-foreground">Theme Settings</h2>
+          <p className="text-[14px] text-muted-foreground leading-relaxed max-w-[600px]">
+            Switch between light mode and dark mode for your Mailer workspace.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-[14px] font-medium text-foreground select-none">
+            Dark Mode
+          </span>
+          <Switch
+            checked={theme === 'dark'}
+            onCheckedChange={(checked) => {
+              setTheme(checked ? 'dark' : 'light');
+              toast.success(checked ? 'Dark mode enabled' : 'Light mode enabled');
+            }}
           />
         </div>
       </div>

@@ -9,9 +9,9 @@ export default async function QueuePage() {
   const { data: queue, error } = await supabase
     .from('campaign_recipients')
     .select(`
-      id, status, scheduled_send, sent_at, error_message,
+      id, status, scheduled_send, sent_at, error_message, email_snapshot,
       contact:contacts(first_name, last_name, email, company:companies(name)),
-      campaign:campaigns(name)
+      campaign:campaigns(name, from_email, smtp_config:smtp_configs(label))
     `)
     .order('scheduled_send', { ascending: false })
     .limit(1000);
