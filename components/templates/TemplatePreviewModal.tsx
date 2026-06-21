@@ -84,7 +84,7 @@ export function TemplatePreviewModal({ template, isOpen, onClose }: TemplatePrev
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-5xl rounded-[18px] h-[90vh] md:h-[80vh] flex flex-col p-0 overflow-hidden bg-background">
+      <DialogContent className="sm:max-w-5xl rounded-[18px] h-[90vh] md:h-[80vh] flex flex-col p-0 overflow-hidden bg-background">
         <DialogHeader className="px-6 py-4 border-b border-border flex flex-row items-center justify-between shrink-0">
           <div>
             <DialogTitle className="text-[18px] font-semibold text-foreground flex items-center gap-2">
@@ -96,7 +96,7 @@ export function TemplatePreviewModal({ template, isOpen, onClose }: TemplatePrev
 
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
           {/* Variables configuration panel */}
-          <div className="w-full md:w-85 border-b md:border-b-0 md:border-r border-border p-5 overflow-y-auto shrink-0 bg-secondary/10 flex flex-col gap-4">
+          <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-border p-5 overflow-y-auto shrink-0 bg-secondary/10 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h4 className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">Test Variables</h4>
               {allVars.length > 0 && (
