@@ -80,15 +80,15 @@ export function CampaignTable({ initialCampaigns }: CampaignTableProps) {
 
   return (
     <div className="space-y-6 animate-page-in">
-      <div className="flex items-start justify-between flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-[28px] font-semibold text-foreground tracking-[-0.6px]">Campaigns</h1>
           <p className="text-[14px] text-muted-foreground mt-1">
             Outbound email sequences.
           </p>
         </div>
-        <Link href="/campaigns/new">
-          <Button size="sm" className="h-9 px-2.5 sm:px-3.5 rounded-[8px] bg-foreground hover:bg-foreground/90 text-background text-[13px] press-effect shrink-0 gap-1 sm:gap-1.5">
+        <Link href="/campaigns/new" className="w-full sm:w-auto">
+          <Button size="sm" className="w-full sm:w-auto h-9 px-2.5 sm:px-3.5 rounded-[8px] bg-foreground hover:bg-foreground/90 text-background text-[13px] press-effect shrink-0 gap-1 sm:gap-1.5 justify-center">
             <Plus className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">New Campaign</span>
           </Button>

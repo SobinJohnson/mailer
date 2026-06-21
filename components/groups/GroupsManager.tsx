@@ -18,7 +18,9 @@ import {
   ChevronDown,
   ChevronRight,
   UsersRound,
+  Download,
 } from 'lucide-react';
+import { exportAnalysisReport } from '@/lib/analysis-export';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -515,6 +517,21 @@ export function GroupsManager({ initialGroups, companies }: GroupsManagerProps) 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [search, setSearch] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportAnalysis = async () => {
+    setIsExporting(true);
+    toast.loading('Generating Excel report...', { id: 'export-report' });
+    try {
+      await exportAnalysisReport();
+      toast.success('Report downloaded successfully!', { id: 'export-report' });
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Failed to export report', { id: 'export-report', description: err.message });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     if (!search.trim()) return groups;
@@ -575,14 +592,25 @@ export function GroupsManager({ initialGroups, companies }: GroupsManagerProps) 
               Organise contacts into reusable groups for campaigns
             </p>
           </div>
-          <Button 
-            id="new-group-btn" 
-            onClick={openNew} 
-            className="rounded-[10px] h-10 px-3.5 sm:px-5 gap-1.5 sm:gap-2 shrink-0 bg-foreground hover:bg-foreground/90 text-background press-effect"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">New Group</span>
-          </Button>
+          <div className="flex items-center gap-2.5 w-full sm:w-auto mt-2 sm:mt-0">
+            <Button 
+              id="new-group-btn" 
+              onClick={openNew} 
+              className="flex-1 sm:flex-initial rounded-[10px] h-10 px-3.5 sm:px-5 gap-1.5 sm:gap-2 bg-foreground hover:bg-foreground/90 text-background press-effect"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">New Group</span>
+            </Button>
+            <Button
+              onClick={handleExportAnalysis}
+              disabled={isExporting}
+              variant="outline"
+              className="flex-1 sm:flex-initial rounded-[10px] h-10 px-3.5 sm:px-5 gap-1.5 sm:gap-2 border-border text-muted-foreground hover:text-foreground"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Export Report</span>
+            </Button>
+          </div>
         </div>
 
         {/* Stats bar */}

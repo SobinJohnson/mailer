@@ -73,37 +73,38 @@ export function CompanyTable({ initialCompanies }: CompanyTableProps) {
     <>
     <div className="space-y-6 animate-page-in">
       {/* Page header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-[28px] font-semibold text-foreground tracking-[-0.6px]">Companies</h1>
           <p className="text-[13px] text-muted-foreground mt-1">
             {initialCompanies.length} {initialCompanies.length === 1 ? 'company' : 'companies'} in your database.
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
           <Button
             variant="outline"
             size="sm"
             onClick={handleExport}
-            className="h-9 px-3.5 rounded-[8px] text-[13px] border-border text-muted-foreground hover:text-foreground"
+            className="flex-1 sm:flex-initial h-9 px-2.5 sm:px-3.5 rounded-[8px] text-[13px] border-border text-muted-foreground hover:text-foreground justify-center gap-1 sm:gap-1.5"
           >
-            <Download className="w-3.5 h-3.5 mr-1.5" />
-            Export Page
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Export Page</span>
+            <span className="sm:hidden">Export</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setImportOpen(true)}
-            className="h-9 px-3.5 rounded-[8px] text-[13px] border-border text-muted-foreground hover:text-foreground"
+            className="flex-1 sm:flex-initial h-9 px-2.5 sm:px-3.5 rounded-[8px] text-[13px] border-border text-muted-foreground hover:text-foreground justify-center gap-1 sm:gap-1.5"
           >
-            <Upload className="w-3.5 h-3.5 mr-1.5" />
-            Import
+            <Upload className="w-3.5 h-3.5" />
+            <span>Import</span>
           </Button>
           <Link
             href="/companies/new"
             className={cn(
               buttonVariants({ size: "sm" }),
-              "h-9 px-2.5 sm:px-3.5 rounded-[8px] bg-foreground hover:bg-foreground/90 text-background text-[13px] press-effect flex items-center shrink-0 gap-1 sm:gap-1.5"
+              "flex-1 sm:flex-initial h-9 px-2.5 sm:px-3.5 rounded-[8px] bg-foreground hover:bg-foreground/90 text-background text-[13px] press-effect flex items-center justify-center shrink-0 gap-1 sm:gap-1.5"
             )}
           >
             <Plus className="w-3.5 h-3.5" />

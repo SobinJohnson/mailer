@@ -8,7 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CalendarDays, Plus, ArrowRight, Trash2, Copy } from 'lucide-react';
+import { CalendarDays, Plus, ArrowRight, Trash2, Copy, Download } from 'lucide-react';
+import { toast } from 'sonner';
+import { exportAnalysisReport } from '@/lib/analysis-export';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -46,14 +48,34 @@ interface Plan {
   }>;
 }
 
-export function WeeklyPlanTable({ initialPlans }: { initialPlans: Plan[] }) {
+interface WeeklyPlanTableProps {
+  initialPlans: Plan[];
+}
+
+export function WeeklyPlanTable({ initialPlans }: WeeklyPlanTableProps) {
   const router = useRouter();
-  const [plans, setPlans] = useState<Plan[]>(initialPlans);
+  const [plans, setPlans] = useState(initialPlans);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportAnalysis = async () => {
+    setIsExporting(true);
+    toast.loading('Generating Excel report...', { id: 'export-report' });
+    try {
+      await exportAnalysisReport();
+      toast.success('Report downloaded successfully!', { id: 'export-report' });
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Failed to export report', { id: 'export-report', description: err.message });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDate, setNewDate] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [deleting, setDeleting] = useState<string | null>(null);
 
   // Default Monday date = next Monday
   function getNextMonday() {
@@ -102,15 +124,26 @@ export function WeeklyPlanTable({ initialPlans }: { initialPlans: Plan[] }) {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-[28px] font-semibold tracking-[-0.4px] text-foreground">Weekly Planner</h1>
           <p className="text-[14px] text-muted-foreground mt-1">Schedule daily outbound sends for an entire week in one place.</p>
         </div>
-        <Button onClick={openCreate} className="rounded-[9px] h-9 px-3.5 sm:px-4 gap-1.5 sm:gap-2 shrink-0">
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">New Week Plan</span>
-        </Button>
+        <div className="flex items-center gap-2.5 w-full sm:w-auto mt-2 sm:mt-0">
+          <Button onClick={openCreate} className="flex-1 sm:flex-initial rounded-[9px] h-9 px-3.5 sm:px-4 gap-1.5 sm:gap-2 shrink-0">
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">New Week Plan</span>
+          </Button>
+          <Button
+            onClick={handleExportAnalysis}
+            disabled={isExporting}
+            variant="outline"
+            className="flex-1 sm:flex-initial rounded-[9px] h-9 px-3.5 sm:px-4 gap-1.5 sm:gap-2 border-border text-muted-foreground hover:text-foreground shrink-0"
+          >
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline">Export Report</span>
+          </Button>
+        </div>
       </div>
 
       {plans.length === 0 ? (
