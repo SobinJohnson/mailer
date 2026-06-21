@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Globe, MapPin, Briefcase, Plus, Save, Loader2, Link2, Mail, Phone, Calendar, Building2 } from 'lucide-react';
+import { Globe, MapPin, Briefcase, Plus, Save, Loader2, Link2, Mail, Phone, Calendar, Building2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -34,6 +34,16 @@ export function CompanyDetailView({ initialCompany }: CompanyDetailViewProps) {
   );
   
   const [savingContactId, setSavingContactId] = useState<string | null>(null);
+
+  const [contactsPage, setContactsPage] = useState(1);
+  const CONTACTS_PAGE_SIZE = 5;
+  const totalContactsPages = Math.ceil((company.contacts || []).length / CONTACTS_PAGE_SIZE);
+  const activeContactsPage = Math.min(contactsPage, Math.max(1, totalContactsPages));
+  
+  const paginatedContacts = (company.contacts || []).slice(
+    (activeContactsPage - 1) * CONTACTS_PAGE_SIZE,
+    activeContactsPage * CONTACTS_PAGE_SIZE
+  );
 
   const handleCompanyNotesBlur = async () => {
     if (companyNotes === (company.notes || '')) return;
@@ -195,7 +205,7 @@ export function CompanyDetailView({ initialCompany }: CompanyDetailViewProps) {
               {(!company.contacts || company.contacts.length === 0) ? (
                 <p className="text-[14px] text-muted-foreground text-center py-8">No contacts added yet.</p>
               ) : (
-                company.contacts.map((contact) => (
+                paginatedContacts.map((contact) => (
                   <div key={contact.id} className="p-5 border border-border rounded-[14px] bg-secondary/10 hover:bg-secondary/15 transition-all flex flex-col md:flex-row gap-5">
                     
                     {/* Contact Info (Left) */}
@@ -257,6 +267,34 @@ export function CompanyDetailView({ initialCompany }: CompanyDetailViewProps) {
                 ))
               )}
             </div>
+
+            {totalContactsPages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t border-border/60 mt-4">
+                <span className="text-[12px] text-muted-foreground">
+                  Page <span className="font-semibold text-foreground">{activeContactsPage}</span> of {totalContactsPages}
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setContactsPage(prev => Math.max(1, prev - 1))}
+                    disabled={activeContactsPage <= 1}
+                    className="w-7 h-7 rounded-[6px]"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setContactsPage(prev => Math.min(totalContactsPages, prev + 1))}
+                    disabled={activeContactsPage >= totalContactsPages}
+                    className="w-7 h-7 rounded-[6px]"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

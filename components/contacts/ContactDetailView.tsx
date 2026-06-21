@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Globe, MapPin, Briefcase, Plus, Save, Loader2, Link2, Mail, Phone, Calendar, User, Inbox, Building2 } from 'lucide-react';
+import { Globe, MapPin, Briefcase, Plus, Save, Loader2, Link2, Mail, Phone, Calendar, User, Inbox, Building2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ContactDetailActions } from './ContactDetailActions';
 import { toast } from 'sonner';
@@ -35,6 +36,16 @@ export function ContactDetailView({ initialContact, campaigns }: ContactDetailVi
   const [contact, setContact] = useState<ExtendedContact>(initialContact);
   const [notes, setNotes] = useState(initialContact.notes || '');
   const [savingNotes, setSavingNotes] = useState(false);
+
+  const [campaignsPage, setCampaignsPage] = useState(1);
+  const CAMPAIGNS_PAGE_SIZE = 5;
+  const totalCampaignsPages = Math.ceil((campaigns || []).length / CAMPAIGNS_PAGE_SIZE);
+  const activeCampaignsPage = Math.min(campaignsPage, Math.max(1, totalCampaignsPages));
+
+  const paginatedCampaigns = (campaigns || []).slice(
+    (activeCampaignsPage - 1) * CAMPAIGNS_PAGE_SIZE,
+    activeCampaignsPage * CAMPAIGNS_PAGE_SIZE
+  );
 
   const handleNotesBlur = async () => {
     if (notes === (contact.notes || '')) return;
@@ -199,7 +210,7 @@ export function ContactDetailView({ initialContact, campaigns }: ContactDetailVi
               <p className="text-[12.5px] text-muted-foreground py-2">Not enrolled in any campaigns.</p>
             ) : (
               <div className="space-y-3">
-                {campaigns.map((cr) => (
+                {paginatedCampaigns.map((cr) => (
                   <div key={cr.id} className="p-3 border border-border/80 rounded-[10px] bg-secondary/10 flex flex-col gap-1.5">
                     {cr.campaign ? (
                       <Link 
@@ -218,6 +229,34 @@ export function ContactDetailView({ initialContact, campaigns }: ContactDetailVi
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {totalCampaignsPages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t border-border/60 mt-4">
+                <span className="text-[12px] text-muted-foreground">
+                  Page <span className="font-semibold text-foreground">{activeCampaignsPage}</span> of {totalCampaignsPages}
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setCampaignsPage(prev => Math.max(1, prev - 1))}
+                    disabled={activeCampaignsPage <= 1}
+                    className="w-7 h-7 rounded-[6px]"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setCampaignsPage(prev => Math.min(totalCampaignsPages, prev + 1))}
+                    disabled={activeCampaignsPage >= totalCampaignsPages}
+                    className="w-7 h-7 rounded-[6px]"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
               </div>
             )}
           </div>
