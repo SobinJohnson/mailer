@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 
-const smtpSchema = z.object({
+export const smtpSchema = z.object({
   label: z.string().min(1, 'Label is required'),
   host: z.string().min(1, 'Host is required'),
   port: z.number().int().positive(),

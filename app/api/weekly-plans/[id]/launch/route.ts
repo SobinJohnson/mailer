@@ -57,10 +57,15 @@ export async function POST(_req: Request, { params }: Params) {
         continue;
       }
 
-      // Resolve the concrete date for this day_of_week
-      const offset = DAY_OFFSETS[schedule.day_of_week] ?? 0;
+      // Resolve the Monday of the week containing plan.start_date
       const [yr, mo, dy] = plan.start_date.split('-').map(Number);
       const baseDate = new Date(Date.UTC(yr, mo - 1, dy));
+      const day = baseDate.getUTCDay(); // 0 = Sunday, 1 = Monday, etc.
+      const diffToMonday = day === 0 ? -6 : 1 - day;
+      baseDate.setUTCDate(baseDate.getUTCDate() + diffToMonday);
+
+      // Resolve the concrete date for this day_of_week
+      const offset = DAY_OFFSETS[schedule.day_of_week] ?? 0;
       baseDate.setUTCDate(baseDate.getUTCDate() + offset);
       const targetDateStr = baseDate.toISOString().split('T')[0];
 

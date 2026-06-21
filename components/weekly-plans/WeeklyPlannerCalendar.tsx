@@ -61,16 +61,24 @@ const STATUS_BADGE: Record<string, string> = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function getMonday(startDate: string): Date {
+  const d = new Date(startDate + 'T00:00:00');
+  const day = d.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+
 function formatWeekRange(startDate: string) {
-  const start = new Date(startDate + 'T00:00:00');
-  const end = new Date(startDate + 'T00:00:00');
+  const start = getMonday(startDate);
+  const end = new Date(start);
   end.setDate(end.getDate() + 6);
   return `${start.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} – ${end.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`;
 }
 
 function resolveDate(startDate: string, day: string) {
   const offset = DAYS.indexOf(day);
-  const d = new Date(startDate + 'T00:00:00');
+  const d = getMonday(startDate);
   d.setDate(d.getDate() + offset);
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }

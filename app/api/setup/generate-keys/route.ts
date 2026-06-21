@@ -43,6 +43,22 @@ function generateJWT(role: string, secret: string) {
 
 export async function POST() {
   try {
+    // Security: Only allow if this is a first-run (no Supabase URL configured)
+    // or if there's a valid session.
+    const existingUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (existingUrl && existingUrl !== 'http://localhost:8000' && existingUrl !== '') {
+      try {
+        const { createClient } = await import('@/lib/supabase/server');
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          return NextResponse.json({ error: 'Unauthorized. Log in to generate keys.' }, { status: 401 });
+        }
+      } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+    }
+
     // Generate a random 32-character secret for the JWT_SECRET
     const jwtSecret = crypto.randomBytes(32).toString('hex');
     

@@ -243,3 +243,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ processed: due.length, sent, failed });
 }
+
+export async function GET(request: Request) {
+  return POST(request);
+}

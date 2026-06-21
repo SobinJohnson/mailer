@@ -95,7 +95,7 @@ export async function POST(
       return NextResponse.json({ error: error.issues }, { status: 400 });
     }
     return NextResponse.json(
-      { error: error?.message || JSON.stringify(error) || 'Unknown error', details: error },
+      { error: error?.message || 'Unknown error' },
       { status: 500 }
     );
   }

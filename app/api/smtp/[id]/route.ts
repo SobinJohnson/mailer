@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { smtpSchema } from '../route';
+import { z } from 'zod';
 
 export async function DELETE(
   request: Request,
@@ -29,9 +31,11 @@ export async function PUT(
 
   try {
     const body = await request.json();
+    const validatedData = smtpSchema.partial().parse(body);
+
     const { error } = await supabase
       .from('smtp_configs')
-      .update(body)
+      .update(validatedData)
       .eq('id', id);
 
     if (error) throw error;

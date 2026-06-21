@@ -3,6 +3,22 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
   try {
+    // Security: Only allow if this is a first-run (no Supabase URL configured)
+    // or if there's a valid session. Prevents open SSRF proxy attacks.
+    const existingUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (existingUrl && existingUrl !== 'http://localhost:8000' && existingUrl !== '') {
+      try {
+        const { createClient } = await import('@/lib/supabase/server');
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          return NextResponse.json({ success: false, error: 'Unauthorized. Log in to test setup.' }, { status: 401 });
+        }
+      } catch {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      }
+    }
+
     const { url, anonKey, serviceKey } = await request.json();
 
     if (!url || !anonKey) {

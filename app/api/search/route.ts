@@ -10,7 +10,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ results: [] });
   }
 
-  const pattern = `%${q}%`;
+  const escapedQ = q.replace(/[\\"]/g, '\\$&');
+  const pattern = `"%${escapedQ}%"`;
 
   const [companiesRes, contactsRes, templatesRes, campaignsRes] = await Promise.all([
     supabase

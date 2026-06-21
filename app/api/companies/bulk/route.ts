@@ -11,6 +11,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No data provided' }, { status: 400 });
     }
 
+    if (companies.length > 1000) {
+      return NextResponse.json({ error: 'Bulk import limit exceeded. Max 1000 rows allowed per request.' }, { status: 400 });
+    }
+
     const payload = companies.map(row => ({
       name: row.name ? String(row.name).trim() : 'Unknown Company',
       industry: row.industry ? String(row.industry).trim() : null,

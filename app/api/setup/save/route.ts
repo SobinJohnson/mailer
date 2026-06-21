@@ -27,6 +27,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'URL and Anon Key are required.' }, { status: 400 });
     }
 
+    const cleanEnvValue = (val: string) => {
+      return val.replace(/[\r\n"']/g, '').trim();
+    };
+
+    const cleanUrl = cleanEnvValue(url);
+    const cleanAnonKey = cleanEnvValue(anonKey);
+    const cleanServiceKey = serviceKey ? cleanEnvValue(serviceKey) : '';
+
     const envPath = join(process.cwd(), '.env.local');
     
     let envContent = '';
@@ -45,10 +53,10 @@ export async function POST(request: Request) {
       return content + (content.endsWith('\n') ? '' : '\n') + `${key}=${value}\n`;
     };
 
-    envContent = setEnvVar(envContent, 'NEXT_PUBLIC_SUPABASE_URL', url);
-    envContent = setEnvVar(envContent, 'NEXT_PUBLIC_SUPABASE_ANON_KEY', anonKey);
-    if (serviceKey) {
-      envContent = setEnvVar(envContent, 'SUPABASE_SERVICE_KEY', serviceKey);
+    envContent = setEnvVar(envContent, 'NEXT_PUBLIC_SUPABASE_URL', cleanUrl);
+    envContent = setEnvVar(envContent, 'NEXT_PUBLIC_SUPABASE_ANON_KEY', cleanAnonKey);
+    if (cleanServiceKey) {
+      envContent = setEnvVar(envContent, 'SUPABASE_SERVICE_KEY', cleanServiceKey);
     }
 
     await writeFile(envPath, envContent, 'utf-8');

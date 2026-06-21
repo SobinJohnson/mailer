@@ -12,7 +12,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    const fileExt = file.name.split('.').pop();
+    // Size limit: 10MB
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      return NextResponse.json({ error: 'File size exceeds limit of 10MB.' }, { status: 400 });
+    }
+
+    // Whitelisted types
+    const ALLOWED_MIME_TYPES = [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+      'application/pdf', 'text/plain', 'text/csv',
+      'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'application/rtf',
+      'application/zip', 'application/x-zip-compressed', 'application/x-tar', 'application/x-gzip', 'application/x-7z-compressed'
+    ];
+    const ALLOWED_EXTENSIONS = [
+      'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg',
+      'pdf', 'txt', 'csv', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'rtf',
+      'zip', 'tar', 'gz', '7z'
+    ];
+
+    const fileExt = file.name.split('.').pop()?.toLowerCase();
+    if (!fileExt || !ALLOWED_EXTENSIONS.includes(fileExt) || !ALLOWED_MIME_TYPES.includes(file.type)) {
+      return NextResponse.json({ error: 'File type is not allowed.' }, { status: 400 });
+    }
+
     const fileName = `${Math.random().toString(36).substring(2, 15)}-${Date.now()}.${fileExt}`;
     const filePath = `${fileName}`;
 

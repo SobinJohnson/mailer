@@ -42,7 +42,7 @@ export function CampaignQueueTabs({ groupedRecipients }: CampaignQueueTabsProps)
   const handleSendNow = async () => {
     setSending(true);
     try {
-      const res = await fetch('/api/send/process', { method: 'POST' });
+      const res = await fetch('/api/send/manual', { method: 'POST' });
       const data = await res.json();
       
       if (!res.ok) throw new Error(data.error || 'Failed to process queue');

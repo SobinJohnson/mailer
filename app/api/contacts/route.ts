@@ -28,7 +28,9 @@ export async function GET(request: Request) {
   `, { count: 'exact' });
 
   if (search) {
-    query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);
+    const escaped = search.replace(/[\\"]/g, '\\$&');
+    const pattern = `"%${escaped}%"`;
+    query = query.or(`first_name.ilike.${pattern},last_name.ilike.${pattern},email.ilike.${pattern}`);
   }
   
   if (company_id) {

@@ -162,3 +162,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ results });
 }
+
+export async function GET(request: Request) {
+  return POST(request);
+}
