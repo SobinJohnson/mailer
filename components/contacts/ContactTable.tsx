@@ -171,7 +171,11 @@ export function ContactTable({ initialContacts, companies }: ContactTableProps) 
               </TableRow>
             ) : (
               filtered.map((contact) => (
-                <TableRow key={contact.id} className="border-b border-border/60 last:border-0 group hover:bg-muted/50">
+                <TableRow
+                  key={contact.id}
+                  className="cursor-pointer border-b border-border/60 last:border-0 group hover:bg-muted/50"
+                  onClick={() => router.push(`/contacts/${contact.id}`)}
+                >
                   <TableCell className="py-3.5">
                     <div className="flex items-center gap-1.5">
                       <span className="text-[14px] font-medium text-foreground">
@@ -216,6 +220,7 @@ export function ContactTable({ initialContacts, companies }: ContactTableProps) 
                           buttonVariants({ variant: 'outline', size: 'sm' }),
                           "h-7 text-[12px] px-2 flex items-center"
                         )}
+                        onClick={(e) => e.stopPropagation()}
                       >
                         Edit
                       </Link>
