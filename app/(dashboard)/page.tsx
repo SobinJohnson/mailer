@@ -99,7 +99,7 @@ export default async function DashboardPage() {
           <Link
             key={stat.title}
             href={stat.href}
-            className="group flex flex-col justify-between p-5 rounded-[12px] bg-white border border-border hover-lift cursor-pointer"
+            className="group flex flex-col justify-between p-5 rounded-[12px] bg-background border border-border hover-lift cursor-pointer"
           >
             <div className="flex items-center justify-between mb-5">
               <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.1em]">

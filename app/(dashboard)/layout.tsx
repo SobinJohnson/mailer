@@ -385,13 +385,13 @@ export default function DashboardLayout({
             </span>
           </div>
 
-          {/* Global Search — center of topbar */}
-          <div className="flex-1 flex items-center justify-center lg:justify-start">
-            <GlobalSearch />
-          </div>
+          {/* Spacer */}
+          <div className="flex-1" />
 
           {/* Right — breadcrumb / user hint & DB Mode */}
           <div className="flex items-center gap-2.5 lg:gap-4 ml-auto">
+            <GlobalSearch />
+
             {themeMounted && (
               <button
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
