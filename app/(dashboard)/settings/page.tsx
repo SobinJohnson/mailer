@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { SmtpConfigForm } from '@/components/shared/SmtpConfigForm';
+import { GeneralSettings } from '@/components/settings/GeneralSettings';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,6 +41,9 @@ export default async function SettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-8">
+        {/* General preferences toggle */}
+        <GeneralSettings />
+
         {/* Account and Workspace Info */}
         <div className="bg-background border border-border rounded-[18px] p-8 shadow-sm">
           <div className="space-y-4">

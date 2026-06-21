@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -111,9 +111,30 @@ export default function DashboardLayout({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [hideCampaigns, setHideCampaigns] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+
+  useEffect(() => {
+    const checkSettings = () => {
+      setHideCampaigns(localStorage.getItem('hideCampaigns') === 'true');
+    };
+    checkSettings();
+    window.addEventListener('local-storage-settings-change', checkSettings);
+    window.addEventListener('storage', checkSettings);
+    return () => {
+      window.removeEventListener('local-storage-settings-change', checkSettings);
+      window.removeEventListener('storage', checkSettings);
+    };
+  }, []);
+
+  const filteredNavItems = navItems.filter((item) => {
+    if (item.href === '/campaigns' && hideCampaigns) {
+      return false;
+    }
+    return true;
+  });
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -200,7 +221,7 @@ export default function DashboardLayout({
       {/* Navigation */}
       <ScrollArea className="flex-1 py-2">
         <nav className="px-2 space-y-0.5">
-          {navItems.map((item) => (
+          {filteredNavItems.map((item) => (
             <NavLink key={item.href} item={item} />
           ))}
         </nav>

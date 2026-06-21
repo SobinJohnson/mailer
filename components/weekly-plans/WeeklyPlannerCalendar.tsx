@@ -9,8 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Rocket, Copy, ArrowLeft, Plus, Trash2, Clock, Users,
-  FileText, Zap, CheckCircle2, AlertCircle, Loader2,
+  FileText, Zap, CheckCircle2, AlertCircle, Loader2, Pencil
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -392,6 +393,42 @@ export function WeeklyPlannerCalendar({ plan, templates, smtpConfigs, groups }: 
   const [launchResult, setLaunchResult] = useState<{ results: any[]; errors: any[] } | null>(null);
   const [duplicating, setDuplicating] = useState(false);
 
+  const [planName, setPlanName] = useState(plan.name);
+  const [planStartDate, setPlanStartDate] = useState(plan.start_date);
+  const [editPlanOpen, setEditPlanOpen] = useState(false);
+  const [editName, setEditName] = useState(plan.name);
+  const [editStartDate, setEditStartDate] = useState(plan.start_date);
+  const [savingPlan, setSavingPlan] = useState(false);
+
+  async function handleSavePlan() {
+    if (!editName || !editStartDate) return;
+    setSavingPlan(true);
+    try {
+      const res = await fetch(`/api/weekly-plans/${plan.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editName,
+          start_date: editStartDate,
+        }),
+      });
+      const { data, error } = await res.json();
+      if (error) {
+        toast.error('Failed to save plan', { description: typeof error === 'string' ? error : error.message });
+      } else if (data) {
+        setPlanName(data.name);
+        setPlanStartDate(data.start_date);
+        setEditPlanOpen(false);
+        toast.success('Weekly plan updated');
+        router.refresh();
+      }
+    } catch (err: any) {
+      toast.error('Failed to save plan', { description: err.message });
+    } finally {
+      setSavingPlan(false);
+    }
+  }
+
   const scheduleMap = Object.fromEntries(schedules.map(s => [s.day_of_week, s]));
   const isEditable = planStatus === 'draft';
 
@@ -452,13 +489,26 @@ export function WeeklyPlannerCalendar({ plan, templates, smtpConfigs, groups }: 
             <Link href="/weekly-plans" className="text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeft className="w-4 h-4" />
             </Link>
-            <h1 className="text-[24px] font-semibold tracking-[-0.4px] text-foreground">{plan.name}</h1>
+            <h1 className="text-[24px] font-semibold tracking-[-0.4px] text-foreground">{planName}</h1>
             <span className={`inline-flex items-center px-2 py-0.5 rounded-[5px] text-[11px] font-medium border ${STATUS_BADGE[planStatus]}`}>
               {planStatus}
             </span>
+            {isEditable && (
+              <button
+                onClick={() => {
+                  setEditName(planName);
+                  setEditStartDate(planStartDate);
+                  setEditPlanOpen(true);
+                }}
+                className="p-1 rounded-[6px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
+                title="Edit plan name/date"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
           </div>
           <p className="text-[13px] text-muted-foreground pl-6">
-            {formatWeekRange(plan.start_date)} · {configuredCount} of 7 days configured
+            {formatWeekRange(planStartDate)} · {configuredCount} of 7 days configured
           </p>
         </div>
 
@@ -515,7 +565,7 @@ export function WeeklyPlannerCalendar({ plan, templates, smtpConfigs, groups }: 
             key={day}
             day={day}
             schedule={scheduleMap[day]}
-            date={resolveDate(plan.start_date, day)}
+            date={resolveDate(planStartDate, day)}
             isEditable={isEditable}
             onEdit={() => setEditDay(day)}
             onClear={() => handleClearDay(day)}
@@ -532,6 +582,42 @@ export function WeeklyPlannerCalendar({ plan, templates, smtpConfigs, groups }: 
           </p>
         </div>
       )}
+
+      {/* Edit Plan Dialog */}
+      <Dialog open={editPlanOpen} onOpenChange={setEditPlanOpen}>
+        <DialogContent className="max-w-md rounded-[18px]">
+          <DialogHeader>
+            <DialogTitle className="text-[18px] font-semibold">Edit Weekly Plan</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label className="text-[13px]">Plan Name</Label>
+              <Input
+                value={editName}
+                onChange={e => setEditName(e.target.value)}
+                placeholder="Plan Name"
+                className="mt-1.5 rounded-[8px]"
+              />
+            </div>
+            <div>
+              <Label className="text-[13px]">Week Start (Monday)</Label>
+              <Input
+                type="date"
+                value={editStartDate}
+                onChange={e => setEditStartDate(e.target.value)}
+                className="mt-1.5 rounded-[8px]"
+              />
+              <p className="text-[12px] text-muted-foreground mt-1">Anchor date for this weekly planner.</p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setEditPlanOpen(false)} className="rounded-[8px]">Cancel</Button>
+              <Button onClick={handleSavePlan} disabled={savingPlan || !editName || !editStartDate} className="rounded-[8px]">
+                {savingPlan ? 'Saving…' : 'Save Changes'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Day schedule dialog — keyed by day so state resets on day change */}
       <DayDialog

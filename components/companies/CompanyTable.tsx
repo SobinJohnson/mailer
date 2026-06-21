@@ -103,11 +103,11 @@ export function CompanyTable({ initialCompanies }: CompanyTableProps) {
             href="/companies/new"
             className={cn(
               buttonVariants({ size: "sm" }),
-              "h-9 px-3.5 rounded-[8px] bg-foreground hover:bg-foreground/90 text-background text-[13px] press-effect flex items-center"
+              "h-9 px-2.5 sm:px-3.5 rounded-[8px] bg-foreground hover:bg-foreground/90 text-background text-[13px] press-effect flex items-center shrink-0 gap-1 sm:gap-1.5"
             )}
           >
-            <Plus className="w-3.5 h-3.5 mr-1.5" />
-            Add Company
+            <Plus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Add Company</span>
           </Link>
         </div>
       </div>

@@ -107,8 +107,9 @@ export function WeeklyPlanTable({ initialPlans }: { initialPlans: Plan[] }) {
           <h1 className="text-[28px] font-semibold tracking-[-0.4px] text-foreground">Weekly Planner</h1>
           <p className="text-[14px] text-muted-foreground mt-1">Schedule daily outbound sends for an entire week in one place.</p>
         </div>
-        <Button onClick={openCreate} className="rounded-[9px] h-9 gap-2">
-          <Plus className="w-4 h-4" /> New Week Plan
+        <Button onClick={openCreate} className="rounded-[9px] h-9 px-3.5 sm:px-4 gap-1.5 sm:gap-2 shrink-0">
+          <Plus className="w-4 h-4" />
+          <span className="hidden sm:inline">New Week Plan</span>
         </Button>
       </div>
 

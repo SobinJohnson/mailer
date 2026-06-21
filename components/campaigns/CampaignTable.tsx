@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Table, TableBody, TableCell,
@@ -28,6 +28,13 @@ const statusStyles: Record<string, string> = {
 
 export function CampaignTable({ initialCampaigns }: CampaignTableProps) {
   const router = useRouter();
+  const [isDisabled, setIsDisabled] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setIsDisabled(localStorage.getItem('hideCampaigns') === 'true');
+    setMounted(true);
+  }, []);
 
   const {
     search,
@@ -45,6 +52,32 @@ export function CampaignTable({ initialCampaigns }: CampaignTableProps) {
     searchableFields: ['name', 'status'],
   });
 
+  if (!mounted) {
+    return null;
+  }
+
+  if (isDisabled) {
+    return (
+      <div className="max-w-md mx-auto my-12 text-center space-y-6 bg-background border border-border rounded-[18px] p-8 shadow-sm animate-page-in">
+        <div className="w-12 h-12 rounded-full bg-warning/10 text-warning flex items-center justify-center mx-auto">
+          <Megaphone className="w-6 h-6" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-[20px] font-semibold text-foreground tracking-[-0.3px]">Campaigns Section Disabled</h2>
+          <p className="text-[14px] text-muted-foreground leading-relaxed">
+            The standard Campaigns section has been hidden to avoid confusion while using the Weekly Planner. You can re-enable it in settings.
+          </p>
+        </div>
+        <Button 
+          onClick={() => router.push('/settings')} 
+          className="h-10 px-5 rounded-[10px] bg-foreground text-background hover:bg-foreground/90 font-medium text-[14px] w-full"
+        >
+          Go to Settings
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-page-in">
       <div className="flex items-start justify-between flex-wrap gap-3">
@@ -55,9 +88,9 @@ export function CampaignTable({ initialCampaigns }: CampaignTableProps) {
           </p>
         </div>
         <Link href="/campaigns/new">
-          <Button size="sm" className="h-9 px-3.5 rounded-[8px] bg-foreground hover:bg-foreground/90 text-background text-[13px] press-effect">
-            <Plus className="w-3.5 h-3.5 mr-1.5" />
-            New Campaign
+          <Button size="sm" className="h-9 px-2.5 sm:px-3.5 rounded-[8px] bg-foreground hover:bg-foreground/90 text-background text-[13px] press-effect shrink-0 gap-1 sm:gap-1.5">
+            <Plus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">New Campaign</span>
           </Button>
         </Link>
       </div>

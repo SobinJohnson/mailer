@@ -575,9 +575,13 @@ export function GroupsManager({ initialGroups, companies }: GroupsManagerProps) 
               Organise contacts into reusable groups for campaigns
             </p>
           </div>
-          <Button id="new-group-btn" onClick={openNew} className="rounded-[10px] h-10 px-5 gap-2 shrink-0">
+          <Button 
+            id="new-group-btn" 
+            onClick={openNew} 
+            className="rounded-[10px] h-10 px-3.5 sm:px-5 gap-1.5 sm:gap-2 shrink-0 bg-foreground hover:bg-foreground/90 text-background press-effect"
+          >
             <Plus className="w-4 h-4" />
-            New Group
+            <span className="hidden sm:inline">New Group</span>
           </Button>
         </div>
 

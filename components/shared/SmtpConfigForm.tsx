@@ -351,7 +351,7 @@ export function SmtpConfigForm({ configs }: SmtpConfigFormProps) {
               variant="outline" 
               onClick={handleTest} 
               disabled={isTesting || !formData.host || !formData.username || (!editingId && !formData.password)}
-              className="flex-1 rounded-[8px] h-10 text-[14px]"
+              className="flex-1 rounded-[8px] h-12 sm:h-10 text-[14px]"
             >
               {isTesting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Server className="w-4 h-4 mr-2" />}
               Test Connection
@@ -359,7 +359,7 @@ export function SmtpConfigForm({ configs }: SmtpConfigFormProps) {
             <Button 
               onClick={handleSave} 
               disabled={isSaving || !formData.label || (!editingId && !testResult?.success)}
-              className="flex-1 rounded-[8px] h-10 bg-primary hover:bg-primary-focus text-primary-foreground text-[14px]"
+              className="flex-1 rounded-[8px] h-12 sm:h-10 bg-primary hover:bg-primary-focus text-primary-foreground text-[14px]"
             >
               {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
               {editingId ? 'Update Configuration' : 'Save Configuration'}

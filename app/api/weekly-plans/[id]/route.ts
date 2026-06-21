@@ -6,6 +6,7 @@ type Params = { params: Promise<{ id: string }> };
 
 const patchSchema = z.object({
   name: z.string().min(1).optional(),
+  start_date: z.string().optional(),
   status: z.enum(['draft', 'active', 'completed']).optional(),
 });
 

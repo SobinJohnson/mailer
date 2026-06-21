@@ -8,10 +8,11 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, Save, Sparkles, PenTool, Image as ImageIcon } from 'lucide-react';
+import { ChevronLeft, Save, Sparkles, PenTool, Image as ImageIcon, Eye } from 'lucide-react';
 import { EmailTemplate } from '@/types';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { TemplatePreviewModal } from './TemplatePreviewModal';
 
 interface TemplateEditorProps {
   template: EmailTemplate;
@@ -26,6 +27,7 @@ export function TemplateEditor({ template, isNew = false }: TemplateEditorProps)
   const [attachments, setAttachments] = useState<any[]>(template.attachments || []);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -186,6 +188,15 @@ export function TemplateEditor({ template, isNew = false }: TemplateEditorProps)
               Delete
             </Button>
           )}
+          <Button 
+            onClick={() => setIsPreviewOpen(true)}
+            variant="outline" 
+            size="sm" 
+            className="rounded-full h-10 px-4 sm:px-5 text-[13px] sm:text-[14px]"
+          >
+            <Eye className="w-4 h-4 mr-2 text-muted-foreground" />
+            Preview
+          </Button>
           <Button variant="outline" size="sm" className="rounded-full h-10 px-4 sm:px-5 text-[13px] sm:text-[14px]">
             <Sparkles className="w-4 h-4 mr-2 text-primary" />
             AI Rewrite
@@ -307,6 +318,16 @@ export function TemplateEditor({ template, isNew = false }: TemplateEditorProps)
           </div>
         </div>
       </div>
+
+      <TemplatePreviewModal
+        template={{
+          name: name,
+          subject: subject,
+          body_html: editor ? editor.getHTML() : template.body_html,
+        }}
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+      />
     </div>
   );
 }

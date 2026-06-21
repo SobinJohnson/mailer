@@ -8,13 +8,14 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, FileText } from 'lucide-react';
+import { Plus, Search, FileText, Eye } from 'lucide-react';
 import { EmailTemplate } from '@/types';
 import Link from 'next/link';
 
 import { useClientTable } from '@/hooks/useClientTable';
 import { PaginationControls } from '@/components/shared/PaginationControls';
 import { ArrowUpDown } from 'lucide-react';
+import { TemplatePreviewModal } from './TemplatePreviewModal';
 
 interface TemplateTableProps {
   initialTemplates: EmailTemplate[];
@@ -29,6 +30,13 @@ const categoryLabel: Record<string, string> = {
 
 export function TemplateTable({ initialTemplates }: TemplateTableProps) {
   const router = useRouter();
+  const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  const handlePreviewClick = (t: EmailTemplate) => {
+    setSelectedTemplate(t);
+    setIsPreviewOpen(true);
+  };
 
   const {
     search,
@@ -54,9 +62,9 @@ export function TemplateTable({ initialTemplates }: TemplateTableProps) {
           <p className="text-[14px] text-muted-foreground mt-1">Reusable email templates with dynamic variables.</p>
         </div>
         <Link href="/templates/new">
-          <Button size="sm" className="h-9 px-3.5 rounded-[8px] bg-foreground hover:bg-foreground/90 text-background text-[13px] press-effect">
-            <Plus className="w-3.5 h-3.5 mr-1.5" />
-            New Template
+          <Button size="sm" className="h-9 px-2.5 sm:px-3.5 rounded-[8px] bg-foreground hover:bg-foreground/90 text-background text-[13px] press-effect shrink-0 gap-1 sm:gap-1.5">
+            <Plus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">New Template</span>
           </Button>
         </Link>
       </div>
@@ -92,6 +100,7 @@ export function TemplateTable({ initialTemplates }: TemplateTableProps) {
               <TableHead onClick={() => handleSort('updated_at')} className="cursor-pointer text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.08em] h-10 text-right hover:text-foreground">
                 <div className="flex items-center justify-end gap-1">Updated <ArrowUpDown className="w-3 h-3" /></div>
               </TableHead>
+              <TableHead className="w-12 h-10"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -146,6 +155,17 @@ export function TemplateTable({ initialTemplates }: TemplateTableProps) {
                   <TableCell className="text-right text-[13px] text-muted-foreground py-3.5">
                     {new Date(t.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </TableCell>
+                  <TableCell className="text-right py-3.5 select-none" onClick={(e) => e.stopPropagation()}>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="w-8 h-8 rounded-full hover:bg-secondary/80 text-muted-foreground hover:text-foreground"
+                      onClick={() => handlePreviewClick(t)}
+                      title="Preview template"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -159,6 +179,21 @@ export function TemplateTable({ initialTemplates }: TemplateTableProps) {
           onPageChange={setCurrentPage}
         />
       </div>
+
+      {selectedTemplate && (
+        <TemplatePreviewModal 
+          template={{
+            name: selectedTemplate.name,
+            subject: selectedTemplate.subject,
+            body_html: selectedTemplate.body_html,
+          }}
+          isOpen={isPreviewOpen}
+          onClose={() => {
+            setIsPreviewOpen(false);
+            setSelectedTemplate(null);
+          }}
+        />
+      )}
     </div>
   );
 }

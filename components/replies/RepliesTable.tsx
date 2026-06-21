@@ -185,7 +185,7 @@ export function RepliesTable({ replies }: RepliesTableProps) {
 
       <Dialog open={!!selectedReply} onOpenChange={(open) => !open && setSelectedReply(null)}>
         {selectedReply && (
-          <DialogContent className="max-w-2xl bg-background rounded-[16px] border-border shadow-2xl p-0 overflow-hidden">
+          <DialogContent className="max-w-4xl bg-background rounded-[16px] border-border shadow-2xl p-0 overflow-hidden">
             <DialogHeader className="p-6 border-b border-border bg-secondary/30 flex flex-row items-center justify-between">
               <DialogTitle className="text-[20px] font-semibold text-foreground">
                 Incoming Reply
