@@ -130,7 +130,7 @@ export function WeeklyPlanTable({ initialPlans }: WeeklyPlanTableProps) {
           <p className="text-[14px] text-muted-foreground mt-1">Schedule daily outbound sends for an entire week in one place.</p>
         </div>
         <div className="flex items-center gap-2.5 w-full sm:w-auto mt-2 sm:mt-0">
-          <Button onClick={openCreate} className="flex-1 sm:flex-initial rounded-[9px] h-9 px-3.5 sm:px-4 gap-1.5 sm:gap-2 shrink-0">
+          <Button onClick={openCreate} className="flex-1 sm:flex-initial rounded-[9px] h-9 px-3.5 sm:px-4 gap-1.5 sm:gap-2 shrink-0 bg-foreground hover:bg-foreground/90 text-background press-effect">
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">New Week Plan</span>
           </Button>
