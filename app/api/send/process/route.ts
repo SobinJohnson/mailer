@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServiceClient, createClient } from '@/lib/supabase/server';
 import { renderTemplate } from '@/lib/mailer/renderer';
 import { sendMail } from '@/lib/mailer/sender';
+import { getCleanErrorMessage } from '@/lib/utils';
 
 export async function POST(request: Request) {
   // Validate cron secret to prevent unauthorized trigger
@@ -173,9 +174,10 @@ export async function POST(request: Request) {
     } catch (err: any) {
       console.error(`Failed to send recipient ${recipient.id}:`, err);
       
+      const cleanMsg = getCleanErrorMessage(err.message);
       await supabase
         .from('campaign_recipients')
-        .update({ status: 'failed', error_message: err.message })
+        .update({ status: 'failed', error_message: cleanMsg })
         .eq('id', recipient.id);
 
       await supabase.from('send_log').insert({
@@ -183,7 +185,7 @@ export async function POST(request: Request) {
         campaign_id: recipient.campaign_id,
         contact_email: recipient.contacts.email,
         status: 'failed',
-        smtp_response: err.message,
+        smtp_response: cleanMsg,
       });
       
       failed++;

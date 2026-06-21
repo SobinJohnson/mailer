@@ -3,6 +3,7 @@ import nodemailer from 'nodemailer';
 import { z } from 'zod';
 
 import { createClient } from '@/lib/supabase/server';
+import { getCleanErrorMessage } from '@/lib/utils';
 
 const testSchema = z.object({
   id: z.string().optional(),
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('SMTP Test Error:', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to connect or send mail' },
+      { success: false, error: getCleanErrorMessage(error.message) },
       { status: 400 }
     );
   }
