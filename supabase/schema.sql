@@ -78,8 +78,8 @@ CREATE TABLE IF NOT EXISTS campaigns (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name             TEXT NOT NULL,
   description      TEXT,
-  template_id      UUID REFERENCES email_templates(id),
-  smtp_config_id   UUID REFERENCES smtp_configs(id),
+  template_id      UUID REFERENCES email_templates(id) ON DELETE SET NULL,
+  smtp_config_id   UUID REFERENCES smtp_configs(id) ON DELETE SET NULL,
   from_name        TEXT NOT NULL,
   from_email       TEXT NOT NULL,
   reply_to         TEXT,
@@ -96,8 +96,8 @@ CREATE TABLE IF NOT EXISTS campaigns (
 CREATE TABLE IF NOT EXISTS campaign_recipients (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   campaign_id     UUID REFERENCES campaigns(id) ON DELETE CASCADE,
-  contact_id      UUID REFERENCES contacts(id),
-  company_id      UUID REFERENCES companies(id),
+  contact_id      UUID REFERENCES contacts(id) ON DELETE CASCADE,
+  company_id      UUID REFERENCES companies(id) ON DELETE CASCADE,
   status          TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'queued', 'sent', 'failed', 'skipped')),
   scheduled_send  TIMESTAMPTZ,
   sent_at         TIMESTAMPTZ,
@@ -112,8 +112,8 @@ CREATE INDEX IF NOT EXISTS idx_cr_scheduled_queued ON campaign_recipients(schedu
 -- ─── Send Log ────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS send_log (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  recipient_id    UUID REFERENCES campaign_recipients(id),
-  campaign_id     UUID REFERENCES campaigns(id),
+  recipient_id    UUID REFERENCES campaign_recipients(id) ON DELETE CASCADE,
+  campaign_id     UUID REFERENCES campaigns(id) ON DELETE CASCADE,
   contact_email   TEXT,
   status          TEXT CHECK (status IN ('sent', 'failed', 'bounced')),
   smtp_response   TEXT,
