@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, ensureSystemSettings } from '@/lib/supabase/server';
 import { calculateSendTimes } from '@/lib/mailer/scheduler';
 
 const DAY_OFFSETS: Record<string, number> = {
@@ -11,6 +11,10 @@ type Params = { params: Promise<{ id: string }> };
 
 export async function POST(_req: Request, { params }: Params) {
   const { id } = await params;
+  
+  // Ensure system settings are updated with the current domain/secret
+  await ensureSystemSettings();
+
   const supabase = await createClient();
 
   // Fetch the plan

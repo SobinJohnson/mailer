@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BackgroundWorker } from "@/components/shared/BackgroundWorker";
 import { ThemeProvider } from "@/components/shared/ThemeProvider";
+import { ensureSystemSettings } from "@/lib/supabase/server";
 import "./globals.css";
 
 const inter = Inter({
@@ -18,11 +19,14 @@ export const metadata: Metadata = {
     "Open-source outbound mailing platform with CRM, campaign management, templated emails, SMTP configuration, and intelligent send-gap scheduling.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Automatically register host URL and cron secret in database system settings
+  await ensureSystemSettings();
+
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col font-sans bg-background text-foreground">

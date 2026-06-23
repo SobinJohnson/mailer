@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, ensureSystemSettings } from '@/lib/supabase/server';
 import { z } from 'zod';
 import { calculateSendTimes } from '@/lib/mailer/scheduler';
 
@@ -12,6 +12,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  
+  // Ensure system settings are updated with the current domain/secret
+  await ensureSystemSettings();
+
   const supabase = await createClient();
 
   try {
