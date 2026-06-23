@@ -1,10 +1,12 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, ensureSystemSettings } from '@/lib/supabase/server';
 import { Building2, Users, Megaphone, Send, ArrowUpRight, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
+  await ensureSystemSettings();
+  
   const supabase = await createClient();
 
   const [
