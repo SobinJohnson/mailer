@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { BackgroundWorker } from "@/components/shared/BackgroundWorker";
 import { ThemeProvider } from "@/components/shared/ThemeProvider";
 import { ensureSystemSettings } from "@/lib/supabase/server";
 import "./globals.css";
@@ -41,7 +40,6 @@ export default async function RootLayout({
           </TooltipProvider>
           <Toaster position="bottom-right" />
         </ThemeProvider>
-        <BackgroundWorker />
       </body>
     </html>
   );
