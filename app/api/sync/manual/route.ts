@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { POST as imapPost } from '../imap/route';
 
 /**
  * Authenticated proxy for IMAP sync.
@@ -15,17 +16,18 @@ export async function POST() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Forward to the actual sync route with the cron secret
-  const syncUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/sync/imap`;
-  
-  const res = await fetch(syncUrl, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.CRON_SECRET}`,
-      'Content-Type': 'application/json',
-    },
-  });
+  try {
+    // Invoke imapPost directly with a mock Request to bypass the cron secret check
+    const mockRequest = new Request('http://localhost/api/sync/imap', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.CRON_SECRET}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
-  const data = await res.json();
-  return NextResponse.json(data, { status: res.status });
+    return await imapPost(mockRequest);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
