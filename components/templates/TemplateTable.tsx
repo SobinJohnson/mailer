@@ -55,7 +55,7 @@ export function TemplateTable({ initialTemplates }: TemplateTableProps) {
     totalResults,
     setCurrentPage,
     handleSort,
-  } = useClientTable({
+  } = useClientTable<EmailTemplate>({
     data: templates || initialTemplates,
     pageSize: 10,
     initialSortBy: 'updated_at',

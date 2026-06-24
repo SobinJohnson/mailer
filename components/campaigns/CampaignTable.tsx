@@ -54,7 +54,7 @@ export function CampaignTable({ initialCampaigns }: CampaignTableProps) {
     totalResults,
     setCurrentPage,
     handleSort,
-  } = useClientTable({
+  } = useClientTable<any>({
     data: campaigns || initialCampaigns,
     pageSize: 10,
     initialSortBy: 'created_at',

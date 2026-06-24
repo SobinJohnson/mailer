@@ -51,7 +51,7 @@ export function CompanyTable({ initialCompanies }: CompanyTableProps) {
     totalResults,
     setCurrentPage,
     handleSort,
-  } = useClientTable({
+  } = useClientTable<Company>({
     data: companies || initialCompanies,
     pageSize: 10,
     initialSortBy: 'created_at',

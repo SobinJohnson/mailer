@@ -47,7 +47,7 @@ export function ContactTable({ initialContacts, companies }: ContactTableProps) 
     totalResults,
     setCurrentPage,
     handleSort,
-  } = useClientTable({
+  } = useClientTable<Contact>({
     data: contacts || initialContacts,
     pageSize: 10,
     initialSortBy: 'created_at',
