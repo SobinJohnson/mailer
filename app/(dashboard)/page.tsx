@@ -109,11 +109,11 @@ export default async function DashboardPage() {
               </span>
               <stat.icon className="w-3.5 h-3.5 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
             </div>
-            <div className="flex items-end justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-1 sm:gap-0">
               <span className="text-[32px] font-semibold text-foreground tracking-[-1.5px] leading-none">
                 {stat.value}
               </span>
-              <div className="flex items-center gap-1 mb-0.5">
+              <div className="flex items-center gap-1 mb-0.5 shrink-0">
                 <span className="text-[12px] text-muted-foreground">{stat.desc}</span>
                 <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/30 group-hover:translate-x-0.5 group-hover:text-muted-foreground transition-all duration-150" />
               </div>
