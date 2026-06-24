@@ -1,14 +1,5 @@
 import { vi } from 'vitest';
 
-/**
- * Creates a chainable Supabase mock that can be configured per-test.
- *
- * Usage:
- *   const { supabase, configure } = createSupabaseMock();
- *   configure({ data: [{ id: '1', name: 'Test' }], error: null });
- *   vi.mocked(createClient).mockResolvedValue(supabase as any);
- */
-
 export interface MockResult {
   data?: any;
   error?: any;
@@ -22,71 +13,54 @@ export function createSupabaseMock(defaultResult: MockResult = { data: null, err
     result = newResult;
   };
 
-  // Build a chainable proxy — each method returns itself or a terminal promise
-  const terminal = () => Promise.resolve(result);
-
-  const chain: any = new Proxy(
-    {},
-    {
-      get(_target, prop) {
-        // Terminal async methods
-        if (['single', 'maybeSingle'].includes(prop as string)) {
-          return () => Promise.resolve({ ...result, data: Array.isArray(result.data) ? result.data[0] ?? null : result.data });
-        }
-        if (prop === 'then') return undefined; // Not a Promise itself
-        // All other methods return the chain for further chaining
-        return (..._args: any[]) => chain;
-      },
+  // The QueryBuilder Proxy handles all database builder method chaining (select, eq, order, limit, insert, update, delete, etc.)
+  const queryBuilderHandler: ProxyHandler<any> = {
+    get(target, prop, receiver) {
+      if (prop === 'then') {
+        // When the query is directly awaited (e.g. const { data } = await query)
+        return (resolve: any, reject: any) => {
+          return Promise.resolve(result).then(resolve, reject);
+        };
+      }
+      if (prop === 'single' || prop === 'maybeSingle') {
+        // When terminated with .single() or .maybeSingle()
+        return () => {
+          const resolvedData = Array.isArray(result.data) ? (result.data[0] ?? null) : result.data;
+          return Promise.resolve({ data: resolvedData, error: result.error });
+        };
+      }
+      // Every other database chain method returns a function returning the query builder itself
+      return () => receiver;
     }
-  );
-
-  // Override terminal points
-  const from = vi.fn((_table: string) => ({
-    select: vi.fn((..._args: any[]) => ({
-      eq: vi.fn((..._args: any[]) => ({
-        single: vi.fn(() => Promise.resolve({ data: Array.isArray(result.data) ? result.data[0] ?? null : result.data, error: result.error })),
-        maybeSingle: vi.fn(() => Promise.resolve({ data: Array.isArray(result.data) ? result.data[0] ?? null : result.data, error: result.error })),
-        in: vi.fn((..._args: any[]) => ({
-          limit: vi.fn(() => Promise.resolve(result)),
-          order: vi.fn(() => Promise.resolve(result)),
-          lte: vi.fn(() => ({ limit: vi.fn(() => Promise.resolve(result)) })),
-        })),
-        order: vi.fn(() => Promise.resolve(result)),
-        limit: vi.fn(() => Promise.resolve(result)),
-        lte: vi.fn(() => ({ limit: vi.fn(() => Promise.resolve(result)), in: vi.fn(() => ({ limit: vi.fn(() => Promise.resolve(result)) })) })),
-      })),
-      or: vi.fn(() => ({
-        order: vi.fn(() => Promise.resolve(result)),
-        eq: vi.fn(() => ({ order: vi.fn(() => Promise.resolve(result)) })),
-      })),
-      ilike: vi.fn(() => ({ order: vi.fn(() => Promise.resolve(result)) })),
-      in: vi.fn(() => ({ order: vi.fn(() => Promise.resolve(result)), limit: vi.fn(() => Promise.resolve(result)), lte: vi.fn(() => ({ limit: vi.fn(() => Promise.resolve(result)) })) })),
-      limit: vi.fn(() => Promise.resolve(result)),
-      order: vi.fn(() => Promise.resolve(result)),
-      lte: vi.fn(() => ({ limit: vi.fn(() => Promise.resolve(result)), in: vi.fn(() => ({ limit: vi.fn(() => Promise.resolve(result)) })) })),
-      not: vi.fn(() => ({ limit: vi.fn(() => Promise.resolve(result)) })),
-      single: vi.fn(() => Promise.resolve({ data: Array.isArray(result.data) ? result.data[0] ?? null : result.data, error: result.error })),
-    })),
-    insert: vi.fn((_data: any) => ({
-      select: vi.fn(() => ({
-        single: vi.fn(() => Promise.resolve({ data: Array.isArray(result.data) ? result.data[0] ?? null : result.data, error: result.error })),
-      })),
-      then: (resolve: any) => resolve({ data: result.data, error: result.error }),
-    })),
-    update: vi.fn((_data: any) => ({
-      eq: vi.fn(() => Promise.resolve(result)),
-    })),
-    upsert: vi.fn((_data: any) => Promise.resolve(result)),
-    delete: vi.fn(() => ({
-      eq: vi.fn(() => Promise.resolve(result)),
-    })),
-  }));
-
-  const auth = {
-    getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
   };
 
-  const supabase = { from, auth };
+  const queryBuilder = new Proxy({}, queryBuilderHandler);
+
+  // The Client Proxy handles properties accessed directly on the client (from, auth, storage, etc.)
+  const clientHandler: ProxyHandler<any> = {
+    get(target, prop) {
+      if (prop === 'then') {
+        return undefined; // NOT thenable (prevents await createClient() from calling .then and resolving to data)
+      }
+      if (prop === 'auth') {
+        return {
+          getUser: vi.fn(() => Promise.resolve({ data: { user: { id: 'mock-user-id' } }, error: null })),
+        };
+      }
+      if (prop === 'storage') {
+        return {
+          from: vi.fn(() => ({
+            upload: vi.fn().mockResolvedValue({ data: { path: 'test-path' }, error: null }),
+            createSignedUrl: vi.fn().mockResolvedValue({ data: { signedUrl: 'https://test-signed-url' }, error: null }),
+          })),
+        };
+      }
+      // Any other method accessed on client (like .from()) returns a function returning the queryBuilder
+      return () => queryBuilder;
+    }
+  };
+
+  const supabase = new Proxy({}, clientHandler);
 
   return { supabase, configure };
 }
