@@ -42,23 +42,23 @@ function makeRequest(authHeader?: string): Request {
 
 function buildServiceMock(queueItems: any[] = []) {
   return {
+    rpc: vi.fn().mockResolvedValue({
+      data: queueItems.map(item => ({ id: item.id })),
+      error: null
+    }),
     from: vi.fn().mockReturnValue({
       select: vi.fn().mockReturnValue({
+        in: vi.fn().mockResolvedValue({ data: queueItems, error: null }),
         eq: vi.fn().mockReturnValue({
           lte: vi.fn().mockReturnValue({
             limit: vi.fn().mockResolvedValue({ data: queueItems, error: null }),
-            in: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue({ data: queueItems, error: null }),
-            }),
-          }),
-          in: vi.fn().mockReturnValue({
-            order: vi.fn().mockResolvedValue({ data: queueItems, error: null }),
           }),
         }),
-        in: vi.fn().mockReturnValue({ order: vi.fn().mockResolvedValue({ data: queueItems, error: null }) }),
-        not: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue({ data: queueItems, error: null }) }),
       }),
       update: vi.fn().mockReturnValue({
+        in: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+        }),
         eq: vi.fn().mockResolvedValue({ data: null, error: null }),
       }),
       insert: vi.fn().mockResolvedValue({ data: null, error: null }),
@@ -200,6 +200,7 @@ describe('POST /api/send/process — Send Flow', () => {
     });
 
     vi.mocked(createServiceClient).mockReturnValue({
+      rpc: vi.fn().mockResolvedValue({ data: [{ id: 'r1' }], error: null }),
       from: vi.fn().mockImplementation((table: string) => {
         if (table === 'campaign_recipients') {
           return {
@@ -212,11 +213,8 @@ describe('POST /api/send/process — Send Flow', () => {
                 };
               }
               return {
-                eq: vi.fn().mockReturnValue({
-                  lte: vi.fn().mockReturnValue({
-                    limit: vi.fn().mockResolvedValue({ data: [queueItem], error: null }),
-                  }),
-                }),
+                in: vi.fn().mockResolvedValue({ data: [queueItem], error: null }),
+                eq: vi.fn().mockResolvedValue({ data: [{ status: 'sent' }], error: null }),
               };
             }),
             update: updateMock,

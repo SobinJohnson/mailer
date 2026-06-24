@@ -36,8 +36,28 @@ export async function POST(request: Request) {
   const supabase = createServiceClient();
   const now = new Date().toISOString();
 
-  // Fetch due recipients
-  let query = supabase
+  // Atomically claim due recipients using row-level locking (FOR UPDATE SKIP LOCKED)
+  const { data: claimedIds, error: claimError } = await supabase.rpc(
+    'claim_queued_recipients',
+    {
+      limit_val: 10,
+      org_ids: orgIds.length > 0 ? orgIds : null
+    }
+  );
+
+  if (claimError) {
+    console.error('Queue claim error:', claimError);
+    return NextResponse.json({ error: 'Failed to claim sending queue' }, { status: 500 });
+  }
+
+  if (!claimedIds || claimedIds.length === 0) {
+    return NextResponse.json({ processed: 0 });
+  }
+
+  const recipientIds = claimedIds.map((row: any) => row.id);
+
+  // Fetch full details of the claimed recipients
+  const { data: due, error: fetchError } = await supabase
     .from('campaign_recipients')
     .select(`
       *,
@@ -52,27 +72,45 @@ export async function POST(request: Request) {
         smtp_configs(*)
       )
     `)
-    .eq('status', 'queued')
-    .lte('scheduled_send', now);
-
-  if (orgIds.length > 0) {
-    query = query.in('organization_id', orgIds);
-  }
-
-  const { data: due, error: fetchError } = await query.limit(10);
+    .in('id', recipientIds);
 
   if (fetchError) {
     console.error('Queue fetch error:', fetchError);
-    return NextResponse.json({ error: 'Failed to fetch queue' }, { status: 500 });
+    // Reset status back to queued if we couldn't fetch details to prevent them from getting stuck in 'sending'
+    await supabase.from('campaign_recipients').update({ status: 'queued' }).in('id', recipientIds);
+    return NextResponse.json({ error: 'Failed to fetch queue details' }, { status: 500 });
   }
+
 
   if (!due || due.length === 0) {
     return NextResponse.json({ processed: 0 });
   }
 
   let sent = 0, failed = 0;
+  const campaignsToCheck = new Set<string>();
 
-  for (const recipient of due) {
+  // Helper function for bounded concurrency execution
+  async function runWithConcurrencyLimit<T>(
+    concurrencyLimit: number,
+    items: T[],
+    fn: (item: T) => Promise<void>
+  ): Promise<void> {
+    const executing = new Set<Promise<void>>();
+    for (const item of items) {
+      const p = Promise.resolve().then(() => fn(item));
+      executing.add(p);
+      const clean = () => executing.delete(p);
+      p.then(clean, clean);
+      if (executing.size >= concurrencyLimit) {
+        await Promise.race(executing);
+      }
+    }
+    await Promise.all(executing);
+  }
+
+  // Process due emails concurrently (limit to 3 concurrent sends to respect SMTP connections)
+  await runWithConcurrencyLimit(3, due, async (recipient) => {
+    campaignsToCheck.add(recipient.campaign_id);
     try {
       const contact = recipient.contacts;
       const company = contact?.companies;
@@ -190,23 +228,27 @@ export async function POST(request: Request) {
       
       failed++;
     }
+  });
 
-    // Check if campaign is fully completed
+  // After all sends in the batch complete, check campaign completions
+  for (const campaignId of campaignsToCheck) {
     const { count: remainingCount } = await supabase
       .from('campaign_recipients')
       .select('*', { count: 'exact', head: true })
-      .eq('campaign_id', recipient.campaign_id)
-      .in('status', ['pending', 'queued']);
+      .eq('campaign_id', campaignId)
+      .in('status', ['pending', 'queued', 'sending']);
 
-    if (remainingCount === 0 && recipient.campaigns.status !== 'completed') {
+    const sampleRecipient = due.find(r => r.campaign_id === campaignId);
+
+    if (remainingCount === 0 && sampleRecipient && sampleRecipient.campaigns.status !== 'completed') {
       // Mark campaign as completed
-      await supabase.from('campaigns').update({ status: 'completed' }).eq('id', recipient.campaign_id);
+      await supabase.from('campaigns').update({ status: 'completed' }).eq('id', campaignId);
       
       // Fetch summary for report
       const { data: stats } = await supabase
         .from('campaign_recipients')
         .select('status')
-        .eq('campaign_id', recipient.campaign_id);
+        .eq('campaign_id', campaignId);
         
       const totalSent = stats?.filter((r: any) => r.status === 'sent').length || 0;
       const totalFailed = stats?.filter((r: any) => r.status === 'failed').length || 0;
@@ -214,7 +256,7 @@ export async function POST(request: Request) {
 
       const reportHtml = `
         <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto;">
-          <h2>Campaign Completed: ${recipient.campaigns.name}</h2>
+          <h2>Campaign Completed: ${sampleRecipient.campaigns.name}</h2>
           <p>Your campaign has finished processing all scheduled emails.</p>
           <div style="background: #f4f4f5; padding: 20px; border-radius: 8px; margin-top: 20px;">
             <h3>Final Statistics</h3>
@@ -232,9 +274,9 @@ export async function POST(request: Request) {
 
       try {
         await sendMail({
-          smtpConfig: recipient.campaigns.smtp_configs,
-          to: recipient.campaigns.from_email,
-          subject: `Campaign Completed: ${recipient.campaigns.name}`,
+          smtpConfig: sampleRecipient.campaigns.smtp_configs,
+          to: sampleRecipient.campaigns.from_email,
+          subject: `Campaign Completed: ${sampleRecipient.campaigns.name}`,
           html: reportHtml
         });
       } catch (reportErr) {

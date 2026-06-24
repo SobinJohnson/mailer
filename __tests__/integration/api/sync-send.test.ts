@@ -2,10 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockConnect = vi.fn().mockResolvedValue(undefined);
 const mockGetMailboxLock = vi.fn().mockResolvedValue({ release: vi.fn() });
-const mockFetch = vi.fn().mockReturnValue({
-  [Symbol.asyncIterator]: async function* () {
-    yield { source: 'raw-email-source', envelope: {} };
-  },
+const mockFetch = vi.fn().mockImplementation((range: any, query: any) => {
+  return {
+    [Symbol.asyncIterator]: async function* () {
+      yield {
+        uid: 123,
+        source: 'raw-email-source',
+        envelope: { messageId: 'reply-message-id' },
+        headers: Buffer.from('In-Reply-To: original-message-id\nReferences: ref-message-id')
+      };
+    },
+  };
 });
 const mockLogout = vi.fn().mockResolvedValue(undefined);
 
@@ -16,6 +23,7 @@ vi.mock('imapflow', () => ({
       getMailboxLock: mockGetMailboxLock,
       fetch: mockFetch,
       logout: mockLogout,
+      mailbox: { exists: 1, uidNext: 150 },
     };
   }),
 }));
@@ -72,6 +80,8 @@ function buildMockSupabase(configs: any[], matchedRecipients: any[]) {
           select: vi.fn().mockReturnThis(),
           not: vi.fn().mockReturnThis(),
           in: vi.fn().mockReturnThis(),
+          update: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
           then: (resolve: any) => resolve({ data: configs, error: null }),
         };
       }

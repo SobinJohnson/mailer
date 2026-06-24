@@ -40,7 +40,8 @@ BEGIN
     PERFORM net.http_post(
       url := v_app_url || '/api/send/process',
       headers := v_headers,
-      body := '{}'::jsonb
+      body := '{}'::jsonb,
+      timeout_milliseconds := 15000
     );
   END IF;
 END;
@@ -73,7 +74,8 @@ BEGIN
     PERFORM net.http_post(
       url := v_app_url || '/api/sync/imap',
       headers := v_headers,
-      body := '{}'::jsonb
+      body := '{}'::jsonb,
+      timeout_milliseconds := 15000
     );
   END IF;
 END;
