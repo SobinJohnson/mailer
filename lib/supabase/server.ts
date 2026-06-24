@@ -53,16 +53,25 @@ export async function ensureSystemSettings() {
     const protocol = host.startsWith('localhost') || host.startsWith('127.0.0.1') ? 'http' : 'https';
     const appUrl = `${protocol}://${host}`;
     const cronSecret = process.env.CRON_SECRET;
+    const vercelBypassToken = process.env.VERCEL_BYPASS_TOKEN || process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 
     if (!cronSecret) return;
 
     const supabase = createServiceClient();
     
     // Upsert key/value system settings
-    await Promise.all([
+    const upserts = [
       supabase.from('system_settings').upsert({ key: 'app_url', value: appUrl }),
       supabase.from('system_settings').upsert({ key: 'cron_secret', value: cronSecret })
-    ]);
+    ];
+
+    if (vercelBypassToken) {
+      upserts.push(
+        supabase.from('system_settings').upsert({ key: 'vercel_bypass_token', value: vercelBypassToken })
+      );
+    }
+
+    await Promise.all(upserts);
   } catch (err) {
     console.error('Failed to ensure system settings:', err);
   }

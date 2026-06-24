@@ -19,18 +19,27 @@ RETURNS void AS $$
 DECLARE
   v_app_url TEXT;
   v_cron_secret TEXT;
+  v_bypass_token TEXT;
+  v_headers JSONB;
 BEGIN
   -- Fetch setting values
   SELECT value INTO v_app_url FROM public.system_settings WHERE key = 'app_url';
   SELECT value INTO v_cron_secret FROM public.system_settings WHERE key = 'cron_secret';
+  SELECT value INTO v_bypass_token FROM public.system_settings WHERE key = 'vercel_bypass_token';
   
   IF v_app_url IS NOT NULL AND v_cron_secret IS NOT NULL THEN
+    v_headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || v_cron_secret
+    );
+    
+    IF v_bypass_token IS NOT NULL AND v_bypass_token <> '' THEN
+      v_headers := v_headers || jsonb_build_object('x-vercel-protection-bypass', v_bypass_token);
+    END IF;
+
     PERFORM net.http_post(
       url := v_app_url || '/api/send/process',
-      headers := jsonb_build_object(
-        'Content-Type', 'application/json',
-        'Authorization', 'Bearer ' || v_cron_secret
-      ),
+      headers := v_headers,
       body := '{}'::jsonb
     );
   END IF;
@@ -43,18 +52,27 @@ RETURNS void AS $$
 DECLARE
   v_app_url TEXT;
   v_cron_secret TEXT;
+  v_bypass_token TEXT;
+  v_headers JSONB;
 BEGIN
   -- Fetch setting values
   SELECT value INTO v_app_url FROM public.system_settings WHERE key = 'app_url';
   SELECT value INTO v_cron_secret FROM public.system_settings WHERE key = 'cron_secret';
+  SELECT value INTO v_bypass_token FROM public.system_settings WHERE key = 'vercel_bypass_token';
   
   IF v_app_url IS NOT NULL AND v_cron_secret IS NOT NULL THEN
+    v_headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || v_cron_secret
+    );
+    
+    IF v_bypass_token IS NOT NULL AND v_bypass_token <> '' THEN
+      v_headers := v_headers || jsonb_build_object('x-vercel-protection-bypass', v_bypass_token);
+    END IF;
+
     PERFORM net.http_post(
       url := v_app_url || '/api/sync/imap',
-      headers := jsonb_build_object(
-        'Content-Type', 'application/json',
-        'Authorization', 'Bearer ' || v_cron_secret
-      ),
+      headers := v_headers,
       body := '{}'::jsonb
     );
   END IF;
