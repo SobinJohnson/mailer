@@ -16,6 +16,7 @@ import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import { ContactImportModal } from './ContactImportModal';
 import { useRouter } from 'next/navigation';
+import useSWR from 'swr';
 
 import { useClientTable } from '@/hooks/useClientTable';
 import { PaginationControls } from '@/components/shared/PaginationControls';
@@ -26,9 +27,16 @@ interface ContactTableProps {
   companies: Array<{ id: string; name: string }>;
 }
 
+const fetcher = (url: string) => fetch(url).then(res => res.ok ? res.json() : Promise.reject('Failed to fetch')).then(res => res.data || res);
+
 export function ContactTable({ initialContacts, companies }: ContactTableProps) {
   const router = useRouter();
   const [importOpen, setImportOpen] = useState(false);
+
+  const { data: contacts, mutate } = useSWR('/api/contacts', fetcher, {
+    fallbackData: initialContacts,
+    revalidateOnFocus: false,
+  });
 
   const {
     search,
@@ -40,7 +48,7 @@ export function ContactTable({ initialContacts, companies }: ContactTableProps) 
     setCurrentPage,
     handleSort,
   } = useClientTable({
-    data: initialContacts,
+    data: contacts || initialContacts,
     pageSize: 10,
     initialSortBy: 'created_at',
     searchableFields: ['first_name', 'last_name', 'email'],
@@ -72,6 +80,7 @@ export function ContactTable({ initialContacts, companies }: ContactTableProps) 
     try {
       const res = await fetch(`/api/contacts/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
+      mutate();
       router.refresh();
     } catch (err: any) {
       console.error(err);
@@ -86,7 +95,7 @@ export function ContactTable({ initialContacts, companies }: ContactTableProps) 
         <div>
           <h1 className="text-[28px] font-semibold text-foreground tracking-[-0.6px]">Contacts</h1>
           <p className="text-[13px] text-muted-foreground mt-1">
-            {initialContacts.length} {initialContacts.length === 1 ? 'contact' : 'contacts'} across all companies.
+            {(contacts || initialContacts).length} {(contacts || initialContacts).length === 1 ? 'contact' : 'contacts'} across all companies.
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">

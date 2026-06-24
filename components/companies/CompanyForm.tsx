@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { mutate } from 'swr';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -57,6 +58,7 @@ export function CompanyForm({ initialData }: CompanyFormProps) {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Failed to save company');
+      mutate('/api/companies');
       router.push('/companies');
       router.refresh();
     } catch (err) {

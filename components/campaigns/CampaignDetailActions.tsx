@@ -3,6 +3,7 @@
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { mutate } from 'swr';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
 
@@ -28,6 +29,7 @@ export function CampaignDetailActions({ campaignId, status }: CampaignDetailActi
     try {
       const res = await fetch(`/api/campaigns/${campaignId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete campaign');
+      mutate('/api/campaigns');
       router.push('/campaigns');
       router.refresh();
     } catch (err: any) {

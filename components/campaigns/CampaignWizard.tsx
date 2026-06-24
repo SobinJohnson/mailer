@@ -3,6 +3,7 @@
 import { toast } from 'sonner';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { mutate } from 'swr';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -130,6 +131,7 @@ export function CampaignWizard({ templates, smtpConfigs, companies, groups }: Ca
         throw new Error(errMsg);
       }
 
+      mutate('/api/campaigns');
       router.push(`/campaigns/${campaign.id}`);
     } catch (err: any) {
       console.error(err);

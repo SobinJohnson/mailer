@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import { CompanyImportModal } from './CompanyImportModal';
+import useSWR from 'swr';
 
 interface CompanyTableProps {
   initialCompanies: Company[];
@@ -30,9 +31,17 @@ const statusStyles: Record<string, string> = {
   do_not_contact: 'bg-destructive/8 text-destructive',
 };
 
+const fetcher = (url: string) => fetch(url).then(res => res.ok ? res.json() : Promise.reject('Failed to fetch')).then(res => res.data || res);
+
 export function CompanyTable({ initialCompanies }: CompanyTableProps) {
   const [importOpen, setImportOpen] = useState(false);
   const router = useRouter();
+
+  const { data: companies } = useSWR('/api/companies', fetcher, {
+    fallbackData: initialCompanies,
+    revalidateOnFocus: false,
+  });
+
   const {
     search,
     setSearch,
@@ -43,7 +52,7 @@ export function CompanyTable({ initialCompanies }: CompanyTableProps) {
     setCurrentPage,
     handleSort,
   } = useClientTable({
-    data: initialCompanies,
+    data: companies || initialCompanies,
     pageSize: 10,
     initialSortBy: 'created_at',
     searchableFields: ['name', 'industry', 'city', 'state'],
@@ -77,7 +86,7 @@ export function CompanyTable({ initialCompanies }: CompanyTableProps) {
         <div>
           <h1 className="text-[28px] font-semibold text-foreground tracking-[-0.6px]">Companies</h1>
           <p className="text-[13px] text-muted-foreground mt-1">
-            {initialCompanies.length} {initialCompanies.length === 1 ? 'company' : 'companies'} in your database.
+            {(companies || initialCompanies).length} {(companies || initialCompanies).length === 1 ? 'company' : 'companies'} in your database.
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">

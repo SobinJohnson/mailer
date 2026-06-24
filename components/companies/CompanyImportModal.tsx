@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { mutate } from 'swr';
 import { Button } from '@/components/ui/button';
 import { X, Upload, Download, FileSpreadsheet, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -74,6 +75,7 @@ export function CompanyImportModal({ open, onClose }: CompanyImportModalProps) {
       setSuccess(`Successfully imported ${result.inserted} companies!`);
       setTimeout(() => {
         onClose();
+        mutate('/api/companies');
         router.refresh();
       }, 2000);
 

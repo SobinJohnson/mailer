@@ -3,6 +3,7 @@
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { mutate } from 'swr';
 import { Button } from '@/components/ui/button';
 import { Pencil, Trash2 } from 'lucide-react';
 import { Company } from '@/types';
@@ -25,6 +26,7 @@ export function CompanyDetailActions({ company }: CompanyDetailActionsProps) {
     try {
       const res = await fetch(`/api/companies/${company.id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete company');
+      mutate('/api/companies');
       router.push('/companies');
       router.refresh();
     } catch (err: any) {

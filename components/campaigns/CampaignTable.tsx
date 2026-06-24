@@ -15,6 +15,8 @@ import { useClientTable } from '@/hooks/useClientTable';
 import { PaginationControls } from '@/components/shared/PaginationControls';
 import { ArrowUpDown } from 'lucide-react';
 
+import useSWR from 'swr';
+
 interface CampaignTableProps {
   initialCampaigns: any[];
 }
@@ -26,10 +28,17 @@ const statusStyles: Record<string, string> = {
   paused:    'bg-warning/8 text-warning',
 };
 
+const fetcher = (url: string) => fetch(url).then(res => res.ok ? res.json() : Promise.reject('Failed to fetch')).then(res => res.data || res);
+
 export function CampaignTable({ initialCampaigns }: CampaignTableProps) {
   const router = useRouter();
   const [isDisabled, setIsDisabled] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  const { data: campaigns } = useSWR('/api/campaigns', fetcher, {
+    fallbackData: initialCampaigns,
+    revalidateOnFocus: false,
+  });
 
   useEffect(() => {
     setIsDisabled(localStorage.getItem('hideCampaigns') === 'true');
@@ -46,7 +55,7 @@ export function CampaignTable({ initialCampaigns }: CampaignTableProps) {
     setCurrentPage,
     handleSort,
   } = useClientTable({
-    data: initialCampaigns,
+    data: campaigns || initialCampaigns,
     pageSize: 10,
     initialSortBy: 'created_at',
     searchableFields: ['name', 'status'],

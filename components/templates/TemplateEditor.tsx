@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { mutate } from 'swr';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -90,6 +91,7 @@ export function TemplateEditor({ template, isNew = false }: TemplateEditorProps)
       
       const { data } = await res.json();
       toast.success('Template saved successfully');
+      mutate('/api/templates');
       if (isNew) {
         router.push(`/templates/${data.id}`);
       } else {
@@ -174,6 +176,7 @@ export function TemplateEditor({ template, isNew = false }: TemplateEditorProps)
                 try {
                   const res = await fetch(`/api/templates/${template.id}`, { method: 'DELETE' });
                   if (!res.ok) throw new Error('Failed to delete');
+                  mutate('/api/templates');
                   router.push('/templates');
                   router.refresh();
                 } catch (err: any) {

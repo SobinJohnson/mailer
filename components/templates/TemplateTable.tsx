@@ -16,6 +16,7 @@ import { useClientTable } from '@/hooks/useClientTable';
 import { PaginationControls } from '@/components/shared/PaginationControls';
 import { ArrowUpDown } from 'lucide-react';
 import { TemplatePreviewModal } from './TemplatePreviewModal';
+import useSWR from 'swr';
 
 interface TemplateTableProps {
   initialTemplates: EmailTemplate[];
@@ -28,10 +29,17 @@ const categoryLabel: Record<string, string> = {
   event: 'Event',
 };
 
+const fetcher = (url: string) => fetch(url).then(res => res.ok ? res.json() : Promise.reject('Failed to fetch')).then(res => res.data || res);
+
 export function TemplateTable({ initialTemplates }: TemplateTableProps) {
   const router = useRouter();
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  const { data: templates } = useSWR('/api/templates', fetcher, {
+    fallbackData: initialTemplates,
+    revalidateOnFocus: false,
+  });
 
   const handlePreviewClick = (t: EmailTemplate) => {
     setSelectedTemplate(t);
@@ -48,7 +56,7 @@ export function TemplateTable({ initialTemplates }: TemplateTableProps) {
     setCurrentPage,
     handleSort,
   } = useClientTable({
-    data: initialTemplates,
+    data: templates || initialTemplates,
     pageSize: 10,
     initialSortBy: 'updated_at',
     searchableFields: ['name', 'subject'],
