@@ -240,7 +240,7 @@ export function ContactForm({ initialData, companies }: ContactFormProps) {
                   <p className="text-[12px] text-green-500 font-medium">✓ Email mailbox verified and reachable.</p>
                 )}
                 {emailStatus === 'mx_valid' && (
-                  <p className="text-[12px] text-blue-500 font-medium">✓ Domain has valid mail records (deliverable).</p>
+                  <p className="text-[12px] text-amber-500 font-medium">⚠️ Domain exists, but mailbox existence could not be verified (Port 25 blocked/timed out).</p>
                 )}
                 {emailStatus === 'risky' && (
                   <p className="text-[12px] text-amber-500 font-medium">⚠️ {emailError || 'Email server returned temporary failure or could not be validated.'}</p>

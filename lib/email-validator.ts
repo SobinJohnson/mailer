@@ -173,11 +173,7 @@ export async function checkEmailReachability(email: string): Promise<EmailValida
     socket.on('error', (err: any) => {
       // Detect outgoing Port 25 blockages (common in Vercel/cloud environments)
       if (err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED' || err.code === 'EHOSTUNREACH') {
-        handleResolve({
-          valid: true,
-          status: 'mx_valid',
-          details: `Port 25 block detected (${err.code}). Domain exists and has valid MX records, but SMTP mailbox validation was skipped.`,
-        });
+        verifyWithQuickEmailVerification(email).then(handleResolve);
       } else {
         handleResolve({
           valid: false,
@@ -189,11 +185,84 @@ export async function checkEmailReachability(email: string): Promise<EmailValida
 
     socket.on('timeout', () => {
       // Fallback for timeout (likely due to port 25 block)
-      handleResolve({
-        valid: true,
-        status: 'mx_valid',
-        details: 'SMTP handshake timed out. Domain exists and has valid MX records, but SMTP mailbox validation was skipped.',
-      });
+      verifyWithQuickEmailVerification(email).then(handleResolve);
     });
   });
+}
+
+/**
+ * Fallback validator that calls the QuickEmailVerification API when port 25 is blocked.
+ */
+async function verifyWithQuickEmailVerification(email: string): Promise<EmailValidationResult> {
+  const apiKey = process.env.QUICK_EMAIL_VERIFICATION_API_KEY;
+  if (!apiKey) {
+    return {
+      valid: true,
+      status: 'mx_valid',
+      details: 'SMTP handshake timed out / Port 25 block detected. Domain exists and has valid MX records, but SMTP mailbox validation was skipped (API key not configured).',
+    };
+  }
+
+  try {
+    const url = `https://api.quickemailverification.com/v1/verify?email=${encodeURIComponent(email)}&apikey=${encodeURIComponent(apiKey)}`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`QuickEmailVerification API returned HTTP ${response.status}: ${errText}`);
+      return {
+        valid: true,
+        status: 'mx_valid',
+        details: `QuickEmailVerification API error (HTTP ${response.status}). Domain exists and has valid MX records.`,
+      };
+    }
+
+    const data = await response.json();
+    
+    if (data.success === 'false' || data.success === false) {
+      return {
+        valid: true,
+        status: 'mx_valid',
+        details: `QuickEmailVerification API reports failure: ${data.message || 'unknown error'}. Domain exists and has valid MX records.`,
+      };
+    }
+
+    const isValid = data.result === 'valid';
+    const isInvalid = data.result === 'invalid';
+    const isRisky = data.result === 'unknown' || data.safe_to_send === 'false' || data.safe_to_send === false;
+
+    if (isValid) {
+      if (isRisky) {
+        return {
+          valid: true,
+          status: 'risky',
+          details: `Email domain is valid but mailbox is marked as risky (reason: ${data.reason || 'unknown'}).`,
+        };
+      }
+      return {
+        valid: true,
+        status: 'deliverable',
+        details: `Mailbox verified and reachable via QuickEmailVerification API.`,
+      };
+    } else if (isInvalid) {
+      return {
+        valid: false,
+        status: 'undeliverable',
+        error: `Mailbox is undeliverable/bounces (reason: ${data.reason || 'rejected'}).`,
+      };
+    } else {
+      return {
+        valid: true,
+        status: 'risky',
+        details: `Mailbox validity is unknown (reason: ${data.reason || 'unspecified'}).`,
+      };
+    }
+  } catch (err: any) {
+    console.error('Error calling QuickEmailVerification API:', err);
+    return {
+      valid: true,
+      status: 'mx_valid',
+      details: `QuickEmailVerification API request failed: ${err.message}. Domain exists and has valid MX records.`,
+    };
+  }
 }
