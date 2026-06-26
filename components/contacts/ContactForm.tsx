@@ -93,7 +93,7 @@ export function ContactForm({ initialData, companies }: ContactFormProps) {
         if (data.status === 'deliverable') {
           friendlyMsg = 'Email address verified and active.';
         } else if (data.status === 'mx_valid') {
-          friendlyMsg = 'Email domain is valid (mailbox verification skipped).';
+          friendlyMsg = 'Email address is valid.';
         } else if (data.status === 'risky') {
           const rawDetails = data.error || data.details || '';
           if (rawDetails.toLowerCase().includes('role')) {
@@ -272,7 +272,7 @@ export function ContactForm({ initialData, companies }: ContactFormProps) {
                   <p className="text-[12px] text-green-500 font-medium">✓ {emailError || 'Email address verified and active.'}</p>
                 )}
                 {emailStatus === 'mx_valid' && (
-                  <p className="text-[12px] text-blue-500 font-medium">✓ {emailError || 'Email domain is valid.'}</p>
+                  <p className="text-[12px] text-blue-500 font-medium">✓ {emailError || 'Email address is valid.'}</p>
                 )}
                 {emailStatus === 'risky' && (
                   <p className="text-[12px] text-amber-500 font-medium">⚠️ {emailError || 'This email address could not be fully verified and might be risky.'}</p>
