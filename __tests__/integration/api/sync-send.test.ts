@@ -137,6 +137,166 @@ describe('Sync & Send API Routes', () => {
       expect(json.results).toHaveLength(1);
       expect(json.results[0].status).toBe('success');
 
+    });
+
+    it('detects bounces and marks recipients as failed and logs as bounced', async () => {
+      const { simpleParser } = await import('mailparser');
+      vi.mocked(simpleParser).mockResolvedValueOnce({
+        inReplyTo: 'original-message-id',
+        references: ['ref-message-id'],
+        messageId: 'bounce-message-id',
+        from: { text: 'mailer-daemon@googlemail.com' },
+        subject: 'Delivery Status Notification (Failure)',
+        text: 'Message-ID: <original-message-id>\nDelivery to the following recipient failed permanently...',
+        html: '<p>Delivery failed</p>',
+        date: new Date(),
+      } as any);
+
+      const updatedCampaignRecipient = vi.fn().mockReturnThis();
+      const updatedSendLog = vi.fn().mockReturnThis();
+
+      const mockSupa = {
+        from: vi.fn().mockImplementation((table: string) => {
+          if (table === 'smtp_configs') {
+            return {
+              select: vi.fn().mockReturnThis(),
+              not: vi.fn().mockReturnThis(),
+              in: vi.fn().mockReturnThis(),
+              then: (resolve: any) => resolve({ data: [{ id: 'smtp1', imap_host: 'imap.test.com', imap_username: 'test', imap_password: 'pwd' }], error: null }),
+            };
+          }
+          if (table === 'campaign_recipients') {
+            return {
+              select: vi.fn().mockReturnThis(),
+              in: vi.fn().mockReturnThis(),
+              limit: vi.fn().mockReturnThis(),
+              update: updatedCampaignRecipient,
+              eq: vi.fn().mockReturnThis(),
+              then: (resolve: any) => resolve({ data: [{ id: 'rec1', contact_id: 'c1', campaign_id: 'camp1' }], error: null }),
+            };
+          }
+          if (table === 'send_log') {
+            return {
+              update: updatedSendLog,
+              eq: vi.fn().mockReturnThis(),
+              then: (resolve: any) => resolve({ data: [], error: null }),
+            };
+          }
+          return {
+            select: vi.fn().mockReturnThis(),
+            then: (resolve: any) => resolve({ data: [], error: null }),
+          };
+        }),
+        auth: {
+          getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user1' } }, error: null }),
+        },
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupa as any);
+      vi.mocked(createServiceClient).mockReturnValue(mockSupa as any);
+
+      const req = makeRequest('POST', 'http://localhost:3500/api/sync/imap', {
+        'Authorization': `Bearer test-cron-secret-12345`,
+        'Content-Type': 'application/json',
+      });
+      const prevSecret = process.env.CRON_SECRET;
+      process.env.CRON_SECRET = 'test-cron-secret-12345';
+
+      const res = await POST_IMAP(req);
+      expect(res.status).toBe(200);
+
+      expect(updatedCampaignRecipient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'failed',
+          error_message: expect.stringContaining('bounced')
+        })
+      );
+
+      expect(updatedSendLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'bounced',
+          smtp_response: expect.stringContaining('Bounce detected')
+        })
+      );
+
+      process.env.CRON_SECRET = prevSecret;
+    });
+
+    it('detects bounces by parsing Message-ID from text body when headers are missing', async () => {
+      const { simpleParser } = await import('mailparser');
+      vi.mocked(simpleParser).mockResolvedValueOnce({
+        inReplyTo: undefined,
+        references: undefined,
+        messageId: 'bounce-message-id',
+        from: { text: 'mailer-daemon@googlemail.com' },
+        subject: 'Delivery Status Notification (Failure)',
+        text: 'The original message was sent with Message-ID: <original-message-id-from-body>\nDelivery failed...',
+        html: '<p>Delivery failed</p>',
+        date: new Date(),
+      } as any);
+
+      const updatedCampaignRecipient = vi.fn().mockReturnThis();
+      const updatedSendLog = vi.fn().mockReturnThis();
+
+      const mockSupa = {
+        from: vi.fn().mockImplementation((table: string) => {
+          if (table === 'smtp_configs') {
+            return {
+              select: vi.fn().mockReturnThis(),
+              not: vi.fn().mockReturnThis(),
+              in: vi.fn().mockReturnThis(),
+              then: (resolve: any) => resolve({ data: [{ id: 'smtp1', imap_host: 'imap.test.com', imap_username: 'test', imap_password: 'pwd' }], error: null }),
+            };
+          }
+          if (table === 'campaign_recipients') {
+            return {
+              select: vi.fn().mockImplementation((fields: string) => {
+                return {
+                  in: vi.fn().mockImplementation((field: string, values: any[]) => {
+                    expect(values).toContain('original-message-id-from-body');
+                    return {
+                      limit: vi.fn().mockReturnThis(),
+                      then: (resolve: any) => resolve({ data: [{ id: 'rec1', contact_id: 'c1', campaign_id: 'camp1' }], error: null }),
+                    };
+                  }),
+                };
+              }),
+              update: updatedCampaignRecipient,
+              eq: vi.fn().mockReturnThis(),
+            };
+          }
+          if (table === 'send_log') {
+            return {
+              update: updatedSendLog,
+              eq: vi.fn().mockReturnThis(),
+              then: (resolve: any) => resolve({ data: [], error: null }),
+            };
+          }
+          return {
+            select: vi.fn().mockReturnThis(),
+            then: (resolve: any) => resolve({ data: [], error: null }),
+          };
+        }),
+        auth: {
+          getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user1' } }, error: null }),
+        },
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupa as any);
+      vi.mocked(createServiceClient).mockReturnValue(mockSupa as any);
+
+      const req = makeRequest('POST', 'http://localhost:3500/api/sync/imap', {
+        'Authorization': `Bearer test-cron-secret-12345`,
+        'Content-Type': 'application/json',
+      });
+      const prevSecret = process.env.CRON_SECRET;
+      process.env.CRON_SECRET = 'test-cron-secret-12345';
+
+      const res = await POST_IMAP(req);
+      expect(res.status).toBe(200);
+
+      expect(updatedCampaignRecipient).toHaveBeenCalled();
+
       process.env.CRON_SECRET = prevSecret;
     });
   });

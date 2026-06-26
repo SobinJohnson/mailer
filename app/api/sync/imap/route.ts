@@ -83,23 +83,54 @@ export async function POST(request: Request) {
           
           if (!message.source) continue;
           const parsed = (await simpleParser(message.source)) as any;
+          
+          // Check if this is a bounce (Delivery Status Notification / Undeliverable)
+          const fromText = parsed.from?.text || '';
+          const subjectText = parsed.subject || '';
+          const isBounce = 
+            /mailer-daemon|postmaster|daemon|noreply|no-reply/i.test(fromText) ||
+            /bounce|undeliver|delivery status|returned mail|failure notice|non-delivery/i.test(subjectText);
+
           const inReplyTo = parsed.inReplyTo;
           let references = parsed.references;
-          
           if (typeof references === 'string') references = [references];
           
-          const targetMessageIds = [];
+          const targetMessageIds: string[] = [];
           if (inReplyTo) targetMessageIds.push(inReplyTo);
           if (references && Array.isArray(references)) targetMessageIds.push(...references);
 
+          // If it's a bounce and we don't have standard reply headers, try scanning the body text for Message-ID: <...>
+          let originalMessageId = null;
+          if (isBounce) {
+            if (targetMessageIds.length > 0) {
+              originalMessageId = targetMessageIds[0];
+            } else {
+              const textContent = parsed.text || '';
+              const htmlContent = parsed.html || '';
+              const bodyToScan = textContent + '\n' + htmlContent;
+              const match = bodyToScan.match(/Message-ID:\s*(<[^>\s]+>)/i) || 
+                            bodyToScan.match(/Message-Id:\s*(<[^>\s]+>)/i);
+              if (match) {
+                originalMessageId = match[1];
+              }
+            }
+          }
+
+          // Build a set of search IDs
+          const searchIds: string[] = [];
+          if (originalMessageId) {
+            const clean = originalMessageId.replace(/[<>]/g, '');
+            searchIds.push(clean, `<${clean}>`);
+          }
           if (targetMessageIds.length > 0) {
-            // Include both with and without brackets to ensure matching
-            const searchIds = targetMessageIds.flatMap(id => {
+            targetMessageIds.forEach(id => {
               const clean = id.replace(/[<>]/g, '');
-              return [clean, `<${clean}>`];
+              searchIds.push(clean, `<${clean}>`);
             });
-            
-            // Check if we sent this
+          }
+
+          if (searchIds.length > 0) {
+            // Check if we sent this message
             const { data: matchedRecipients } = await supabase
               .from('campaign_recipients')
               .select('id, contact_id, campaign_id')
@@ -110,41 +141,69 @@ export async function POST(request: Request) {
               matches++;
               const original = matchedRecipients[0];
 
-              // Mark the original email as replied
-              const replySnapshot = {
-                message_id: parsed.messageId,
-                from: parsed.from?.text || '',
-                subject: parsed.subject,
-                body_text: parsed.text,
-                body_html: parsed.html,
-                date: parsed.date?.toISOString(),
-              };
+              if (isBounce) {
+                // Update recipient status to 'failed' (since 'bounced' isn't allowed in constraint)
+                const { error: updateError } = await supabase
+                  .from('campaign_recipients')
+                  .update({ 
+                    status: 'failed', 
+                    error_message: `Recipient mailbox bounced: ${parsed.subject || 'Delivery failure'}`
+                  })
+                  .eq('id', original.id);
 
-              const { data: updateData, error: updateError } = await supabase
-                .from('campaign_recipients')
-                .update({ 
-                  status: 'replied', 
-                  replied_at: new Date().toISOString(),
-                  reply_snapshot: replySnapshot
-                })
-                .eq('id', original.id)
-                .select();
+                if (updateError) {
+                  console.error('Failed to update recipient to failed on bounce:', updateError);
+                } else {
+                  console.log('Successfully marked recipient as failed on bounce:', original.id);
+                }
 
-              if (updateError) {
-                console.error('Failed to update recipient to replied:', updateError);
+                // Update send_log to 'bounced' (which is allowed)
+                const { error: logError } = await supabase
+                  .from('send_log')
+                  .update({ 
+                    status: 'bounced', 
+                    smtp_response: `Bounce detected in IMAP inbox sync: ${parsed.subject}` 
+                  })
+                  .eq('recipient_id', original.id);
+
+                if (logError) {
+                  console.error('Failed to update send_log to bounced:', logError);
+                }
               } else {
-                console.log('Successfully updated to replied:', updateData);
-              }
+                // Mark the original email as replied
+                const replySnapshot = {
+                  message_id: parsed.messageId,
+                  from: parsed.from?.text || '',
+                  subject: parsed.subject,
+                  body_text: parsed.text,
+                  body_html: parsed.html,
+                  date: parsed.date?.toISOString(),
+                };
 
-              // Skip any pending follow-ups for this contact in this campaign
-              await supabase
-                .from('campaign_recipients')
-                .update({ status: 'skipped', error_message: 'Contact replied' })
-                .eq('contact_id', original.contact_id)
-                .eq('campaign_id', original.campaign_id)
-                .in('status', ['queued', 'pending']);
-                
-              // NOTE: If you want to notify the user, you can insert a row into a `notifications` table here
+                const { data: updateData, error: updateError } = await supabase
+                  .from('campaign_recipients')
+                  .update({ 
+                    status: 'replied', 
+                    replied_at: new Date().toISOString(),
+                    reply_snapshot: replySnapshot
+                  })
+                  .eq('id', original.id)
+                  .select();
+
+                if (updateError) {
+                  console.error('Failed to update recipient to replied:', updateError);
+                } else {
+                  console.log('Successfully updated to replied:', updateData);
+                }
+
+                // Skip any pending follow-ups for this contact in this campaign
+                await supabase
+                  .from('campaign_recipients')
+                  .update({ status: 'skipped', error_message: 'Contact replied' })
+                  .eq('contact_id', original.contact_id)
+                  .eq('campaign_id', original.campaign_id)
+                  .in('status', ['queued', 'pending']);
+              }
             }
           }
         }
