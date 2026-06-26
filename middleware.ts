@@ -48,8 +48,8 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Redirect unauthenticated users to login (except auth pages, setup page, auth callback) - TEMPORARILY BYPASSED FOR TESTING
-  if (false && !user && !isAuthPage && !isSetupPage && !isAuthCallback) {
+  // Redirect unauthenticated users to login (except auth pages, setup page, auth callback)
+  if (!user && !isAuthPage && !isSetupPage && !isAuthCallback) {
     // For API routes, return 401 instead of redirect
     if (isApiRoute) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
