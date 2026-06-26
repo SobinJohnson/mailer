@@ -56,7 +56,7 @@ export function ContactForm({ initialData, companies }: ContactFormProps) {
     setOverrideValidation(false);
   }
 
-  async function handleEmailBlur() {
+  async function handleVerifyEmail() {
     const email = form.email.trim();
     if (!email) {
       setEmailStatus('idle');
@@ -89,10 +89,32 @@ export function ContactForm({ initialData, companies }: ContactFormProps) {
 
       if (data.valid) {
         setEmailStatus(data.status);
-        setEmailError(data.error || data.details || null);
+        let friendlyMsg = '';
+        if (data.status === 'deliverable') {
+          friendlyMsg = 'Email address verified and active.';
+        } else if (data.status === 'mx_valid') {
+          friendlyMsg = 'Email domain is valid (mailbox verification skipped).';
+        } else if (data.status === 'risky') {
+          const rawDetails = data.error || data.details || '';
+          if (rawDetails.toLowerCase().includes('role')) {
+            friendlyMsg = 'This is a generic role address (like info@ or admin@).';
+          } else {
+            friendlyMsg = 'This email looks risky (it might be temporary, or the server is busy).';
+          }
+        }
+        setEmailError(friendlyMsg);
       } else {
         setEmailStatus('undeliverable');
-        setEmailError(data.error || 'This email address is undeliverable and will bounce.');
+        const rawError = data.error || '';
+        let friendlyMsg = 'This email address is invalid and will bounce.';
+        if (rawError.toLowerCase().includes('rejected_email')) {
+          friendlyMsg = 'This mailbox does not exist on the domain.';
+        } else if (rawError.toLowerCase().includes('invalid_domain')) {
+          friendlyMsg = 'The email domain does not exist.';
+        } else if (rawError.toLowerCase().includes('disposable')) {
+          friendlyMsg = 'This is a temporary/disposable email address.';
+        }
+        setEmailError(friendlyMsg);
       }
     } catch (err: any) {
       console.error(err);
@@ -220,34 +242,44 @@ export function ContactForm({ initialData, companies }: ContactFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-[13px] text-muted-foreground">Email *</Label>
-                <div className="relative">
-                  <Input
-                    value={form.email}
-                    onChange={handleEmailChange}
-                    onBlur={handleEmailBlur}
-                    required
-                    type="email"
-                    placeholder="jane@acme.com"
-                    className="h-10 rounded-[8px] text-[14px] pr-10"
-                  />
-                  {validatingEmail && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                    </div>
-                  )}
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      value={form.email}
+                      onChange={handleEmailChange}
+                      required
+                      type="email"
+                      placeholder="jane@acme.com"
+                      className="h-10 rounded-[8px] text-[14px] pr-10"
+                    />
+                    {validatingEmail && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleVerifyEmail}
+                    disabled={validatingEmail || !form.email.trim()}
+                    className="h-10 px-4 rounded-[8px] text-[13px] font-medium shrink-0"
+                  >
+                    Verify
+                  </Button>
                 </div>
                 {emailStatus === 'deliverable' && (
-                  <p className="text-[12px] text-green-500 font-medium">✓ Email mailbox verified and reachable.</p>
+                  <p className="text-[12px] text-green-500 font-medium">✓ {emailError || 'Email address verified and active.'}</p>
                 )}
                 {emailStatus === 'mx_valid' && (
-                  <p className="text-[12px] text-amber-500 font-medium">⚠️ Domain exists, but mailbox existence could not be verified (Port 25 blocked/timed out).</p>
+                  <p className="text-[12px] text-blue-500 font-medium">✓ {emailError || 'Email domain is valid.'}</p>
                 )}
                 {emailStatus === 'risky' && (
-                  <p className="text-[12px] text-amber-500 font-medium">⚠️ {emailError || 'Email server returned temporary failure or could not be validated.'}</p>
+                  <p className="text-[12px] text-amber-500 font-medium">⚠️ {emailError || 'This email address could not be fully verified and might be risky.'}</p>
                 )}
                 {emailStatus === 'undeliverable' && (
                   <div className="space-y-2 mt-1.5">
-                    <p className="text-[12px] text-destructive font-medium">❌ {emailError || 'This email address is undeliverable (will bounce).'}</p>
+                    <p className="text-[12px] text-destructive font-medium">❌ {emailError || 'This email address is invalid and will bounce.'}</p>
                     <div className="flex items-center gap-2">
                       <input
                         type="checkbox"
