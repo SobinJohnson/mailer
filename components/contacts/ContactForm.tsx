@@ -25,6 +25,11 @@ export function ContactForm({ initialData, companies }: ContactFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [validatingEmail, setValidatingEmail] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'validating' | 'deliverable' | 'mx_valid' | 'risky' | 'undeliverable'>('idle');
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [overrideValidation, setOverrideValidation] = useState(false);
+
   const [form, setForm] = useState({
     company_id: initialData?.company_id ?? '',
     first_name: initialData?.first_name || '',
@@ -41,6 +46,61 @@ export function ContactForm({ initialData, companies }: ContactFormProps) {
   function set(key: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       setForm(prev => ({ ...prev, [key]: e.target.value }));
+  }
+
+  function handleEmailChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value;
+    setForm(prev => ({ ...prev, email: val }));
+    setEmailStatus('idle');
+    setEmailError(null);
+    setOverrideValidation(false);
+  }
+
+  async function handleEmailBlur() {
+    const email = form.email.trim();
+    if (!email) {
+      setEmailStatus('idle');
+      setEmailError(null);
+      return;
+    }
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
+      setEmailStatus('undeliverable');
+      setEmailError('The email address format is invalid.');
+      return;
+    }
+
+    setValidatingEmail(true);
+    setEmailStatus('validating');
+    setEmailError(null);
+
+    try {
+      const res = await fetch('/api/contacts/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Verification failed');
+      }
+
+      if (data.valid) {
+        setEmailStatus(data.status);
+        setEmailError(data.error || data.details || null);
+      } else {
+        setEmailStatus('undeliverable');
+        setEmailError(data.error || 'This email address is undeliverable and will bounce.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setEmailStatus('risky');
+      setEmailError('Could not verify email reachability at this moment.');
+    } finally {
+      setValidatingEmail(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -160,14 +220,48 @@ export function ContactForm({ initialData, companies }: ContactFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-[13px] text-muted-foreground">Email *</Label>
-                <Input
-                  value={form.email}
-                  onChange={set('email')}
-                  required
-                  type="email"
-                  placeholder="jane@acme.com"
-                  className="h-10 rounded-[8px] text-[14px]"
-                />
+                <div className="relative">
+                  <Input
+                    value={form.email}
+                    onChange={handleEmailChange}
+                    onBlur={handleEmailBlur}
+                    required
+                    type="email"
+                    placeholder="jane@acme.com"
+                    className="h-10 rounded-[8px] text-[14px] pr-10"
+                  />
+                  {validatingEmail && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                {emailStatus === 'deliverable' && (
+                  <p className="text-[12px] text-green-500 font-medium">✓ Email mailbox verified and reachable.</p>
+                )}
+                {emailStatus === 'mx_valid' && (
+                  <p className="text-[12px] text-blue-500 font-medium">✓ Domain has valid mail records (deliverable).</p>
+                )}
+                {emailStatus === 'risky' && (
+                  <p className="text-[12px] text-amber-500 font-medium">⚠️ {emailError || 'Email server returned temporary failure or could not be validated.'}</p>
+                )}
+                {emailStatus === 'undeliverable' && (
+                  <div className="space-y-2 mt-1.5">
+                    <p className="text-[12px] text-destructive font-medium">❌ {emailError || 'This email address is undeliverable (will bounce).'}</p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="override_validation"
+                        checked={overrideValidation}
+                        onChange={e => setOverrideValidation(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded border-input accent-destructive cursor-pointer"
+                      />
+                      <label htmlFor="override_validation" className="text-[11px] text-muted-foreground cursor-pointer select-none">
+                        Save anyway (Skip verification)
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[13px] text-muted-foreground">Job Title</Label>
@@ -248,9 +342,16 @@ export function ContactForm({ initialData, companies }: ContactFormProps) {
             >
               Cancel
             </Button>
-            <Button
+             <Button
               type="submit"
-              disabled={loading || !form.first_name || !form.email || !form.company_id}
+              disabled={
+                loading || 
+                !form.first_name || 
+                !form.email || 
+                !form.company_id || 
+                validatingEmail || 
+                (emailStatus === 'undeliverable' && !overrideValidation)
+              }
               className="h-10 px-5 rounded-[8px] bg-primary hover:bg-primary/90 text-primary-foreground text-[14px] press-effect"
             >
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
