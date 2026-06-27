@@ -41,7 +41,25 @@ export function ContactForm({ initialData, companies }: ContactFormProps) {
     is_primary: initialData?.is_primary || false,
     is_general_mailbox: initialData?.is_general_mailbox || false,
     notes: initialData?.notes || '',
+    verification_status: initialData?.verification_status ?? 'unverified',
+    is_active: initialData?.is_active !== false,
   });
+
+  useEffect(() => {
+    if (initialData?.verification_status) {
+      const status = initialData.verification_status;
+      if (status === 'verified') {
+        setEmailStatus('deliverable');
+        setEmailError('Email address verified and active.');
+      } else if (status === 'risky') {
+        setEmailStatus('risky');
+        setEmailError('This email address could not be fully verified and might be risky.');
+      } else if (status === 'failed') {
+        setEmailStatus('undeliverable');
+        setEmailError('This email address is invalid and will bounce.');
+      }
+    }
+  }, [initialData]);
 
   function set(key: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -50,7 +68,7 @@ export function ContactForm({ initialData, companies }: ContactFormProps) {
 
   function handleEmailChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;
-    setForm(prev => ({ ...prev, email: val }));
+    setForm(prev => ({ ...prev, email: val, verification_status: 'unverified' }));
     setEmailStatus('idle');
     setEmailError(null);
     setOverrideValidation(false);
@@ -90,11 +108,13 @@ export function ContactForm({ initialData, companies }: ContactFormProps) {
       if (data.valid) {
         setEmailStatus(data.status);
         let friendlyMsg = '';
+        let vStatus: 'verified' | 'risky' = 'verified';
         if (data.status === 'deliverable') {
           friendlyMsg = 'Email address verified and active.';
         } else if (data.status === 'mx_valid') {
           friendlyMsg = 'Email address is valid.';
         } else if (data.status === 'risky') {
+          vStatus = 'risky';
           const rawDetails = data.error || data.details || '';
           if (rawDetails.toLowerCase().includes('role')) {
             friendlyMsg = 'This is a generic role address (like info@ or admin@).';
@@ -103,6 +123,7 @@ export function ContactForm({ initialData, companies }: ContactFormProps) {
           }
         }
         setEmailError(friendlyMsg);
+        setForm(prev => ({ ...prev, verification_status: vStatus }));
       } else {
         setEmailStatus('undeliverable');
         const rawError = data.error || '';
@@ -115,6 +136,7 @@ export function ContactForm({ initialData, companies }: ContactFormProps) {
           friendlyMsg = 'This is a temporary/disposable email address.';
         }
         setEmailError(friendlyMsg);
+        setForm(prev => ({ ...prev, verification_status: 'failed' }));
       }
     } catch (err: any) {
       console.error(err);
@@ -341,6 +363,19 @@ export function ContactForm({ initialData, companies }: ContactFormProps) {
               />
               <label htmlFor="is_primary" className="text-[13px] text-foreground cursor-pointer select-none">
                 Mark as primary contact for this company
+              </label>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <input
+                type="checkbox"
+                id="is_active"
+                checked={form.is_active}
+                onChange={e => setForm(prev => ({ ...prev, is_active: e.target.checked }))}
+                className="w-4 h-4 rounded border-input accent-primary cursor-pointer"
+              />
+              <label htmlFor="is_active" className="text-[13px] text-foreground cursor-pointer select-none font-medium">
+                Active contact status (Uncheck to temporarily exclude from all campaigns/schedules)
               </label>
             </div>
           </div>

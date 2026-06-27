@@ -1,7 +1,8 @@
 'use client';
 
 import { toast } from 'sonner';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -186,6 +187,11 @@ function GroupEditor({
   onSaved: (group: Group) => void;
 }) {
   const isEditing = !!editingGroup;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [name, setName] = useState(editingGroup?.name ?? '');
   const [description, setDescription] = useState(editingGroup?.description ?? '');
@@ -293,7 +299,9 @@ function GroupEditor({
     }
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-50 flex">
       {/* Backdrop */}
       <div
@@ -506,7 +514,8 @@ function GroupEditor({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

@@ -120,10 +120,40 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const [unreadRepliesCount, setUnreadRepliesCount] = useState(0);
 
   useEffect(() => {
     setThemeMounted(true);
   }, []);
+
+  useEffect(() => {
+    async function fetchUnreadCount() {
+      const { count, error } = await supabase
+        .from('campaign_recipients')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'replied')
+        .eq('reply_read', false);
+      if (!error && count !== null) {
+        setUnreadRepliesCount(count);
+      }
+    }
+    fetchUnreadCount();
+
+    const channel = supabase
+      .channel('realtime_unread_replies')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'campaign_recipients' },
+        () => {
+          fetchUnreadCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, pathname]);
 
   useEffect(() => {
     const checkSettings = () => {
@@ -184,6 +214,16 @@ export default function DashboardLayout({
         />
         {!collapsed && (
           <span className="truncate tracking-[-0.1px]">{item.title}</span>
+        )}
+        {item.title === 'Replies' && unreadRepliesCount > 0 && !collapsed && (
+          <span className="ml-auto flex items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground px-1.5 py-0.5 min-w-[18px] h-[18px] tracking-normal">
+            {unreadRepliesCount}
+          </span>
+        )}
+        {item.title === 'Replies' && unreadRepliesCount > 0 && collapsed && (
+          <span className="absolute -top-1 -right-1 flex items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground w-4 h-4 border border-background shadow-sm">
+            {unreadRepliesCount}
+          </span>
         )}
       </Link>
     );

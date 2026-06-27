@@ -9,6 +9,7 @@ interface SendMailOptions {
   html: string;
   text?: string | null;
   attachments?: CampaignAttachment[];
+  customAttachments?: Array<{ filename: string; content: Buffer }>;
   inReplyTo?: string;
   references?: string;
 }
@@ -20,6 +21,7 @@ export async function sendMail({
   html,
   text,
   attachments = [],
+  customAttachments = [],
   inReplyTo,
   references,
 }: SendMailOptions) {
@@ -77,7 +79,10 @@ export async function sendMail({
     subject,
     html,
     text: text || undefined,
-    attachments: resolvedAttachments,
+    attachments: [
+      ...resolvedAttachments,
+      ...customAttachments,
+    ],
     inReplyTo,
     references,
   });

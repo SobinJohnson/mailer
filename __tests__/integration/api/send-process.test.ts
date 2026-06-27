@@ -211,6 +211,29 @@ describe('POST /api/send/process — Send Flow', () => {
                   }),
                 };
               }
+              // Completion report queries status fields
+              if (typeof fields === 'string' && fields.includes('status') && fields.includes('sent_at')) {
+                return {
+                  eq: vi.fn().mockResolvedValue({
+                    data: [
+                      {
+                        status: 'sent',
+                        sent_at: new Date().toISOString(),
+                        replied_at: null,
+                        scheduled_send: new Date().toISOString(),
+                        contact: {
+                          first_name: 'Alice',
+                          last_name: 'Test',
+                          email: 'alice@test.com',
+                          designation: 'CEO',
+                          company: { name: 'TestCo', website: 'testco.com', industry: 'Tech' }
+                        }
+                      }
+                    ],
+                    error: null
+                  })
+                };
+              }
               return {
                 eq: vi.fn().mockReturnValue({
                   lte: vi.fn().mockReturnValue({
@@ -227,7 +250,38 @@ describe('POST /api/send/process — Send Flow', () => {
           return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
         }
         if (table === 'campaigns') {
-          return { update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: null, error: null }) }) };
+          return {
+            update: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ data: null, error: null })
+            }),
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    ...queueItem.campaigns,
+                    email_templates: queueItem.campaigns.email_templates,
+                  },
+                  error: null
+                })
+              })
+            })
+          };
+        }
+        if (table === 'weekly_plans') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { name: 'Mock Weekly Plan' }, error: null })
+              })
+            })
+          };
+        }
+        if (table === 'email_templates') {
+          return {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockResolvedValue({ data: [], error: null })
+            })
+          };
         }
         return { select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ lte: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue({ data: [], error: null }) }) }) }) };
       }),

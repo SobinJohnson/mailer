@@ -26,6 +26,21 @@ export async function POST(
       return NextResponse.json({ error: 'No recipients selected' }, { status: 400 });
     }
 
+    // Query active contacts only
+    const { data: activeContacts, error: contactsError } = await supabase
+      .from('contacts')
+      .select('id')
+      .in('id', recipientIds)
+      .eq('is_active', true);
+
+    if (contactsError) throw contactsError;
+
+    const activeRecipientIds = activeContacts ? activeContacts.map(c => c.id) : [];
+
+    if (activeRecipientIds.length === 0) {
+      return NextResponse.json({ error: 'All selected recipients are inactive (due to replies)' }, { status: 400 });
+    }
+
     // Get campaign details for scheduling
     const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
@@ -58,7 +73,7 @@ export async function POST(
 
     // Calculate spread out times
     const sendTimes = calculateSendTimes(
-      recipientIds.length,
+      activeRecipientIds.length,
       startAt,
       campaign.send_gap_minutes,
       campaign.gap_jitter_pct,
@@ -67,7 +82,7 @@ export async function POST(
     );
 
     // Insert recipients into queue
-    const inserts = recipientIds.map((contactId, i) => ({
+    const inserts = activeRecipientIds.map((contactId, i) => ({
       campaign_id: id,
       contact_id: contactId,
       organization_id: campaign.organization_id,

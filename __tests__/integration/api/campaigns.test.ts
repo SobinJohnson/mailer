@@ -101,16 +101,40 @@ describe('Campaigns API Routes', () => {
 
       // Mock database responses: first read campaign, then insert recipients, then update status
       const mockSupabase = {
-        from: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
+        from: vi.fn().mockImplementation((table: string) => {
+          if (table === 'contacts') {
+            return {
+              select: vi.fn().mockReturnThis(),
+              in: vi.fn().mockReturnThis(),
+              eq: vi.fn().mockResolvedValue({
+                data: [
+                  { id: '00000000-0000-4000-a000-000000000001' },
+                  { id: '00000000-0000-4000-a000-000000000002' },
+                ],
+                error: null,
+              }),
+            };
+          }
+          if (table === 'campaigns') {
+            return {
+              select: vi.fn().mockReturnThis(),
+              eq: vi.fn().mockReturnThis(),
               single: vi.fn().mockResolvedValue({ data: mockCampaign, error: null }),
-            }),
-          }),
-          insert: vi.fn().mockResolvedValue({ error: null }),
-          update: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ error: null }),
-          }),
+              update: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({ error: null }),
+              }),
+            };
+          }
+          if (table === 'campaign_recipients') {
+            return {
+              insert: vi.fn().mockResolvedValue({ error: null }),
+            };
+          }
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({ data: null, error: null }),
+          };
         }),
       };
       vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
@@ -131,12 +155,29 @@ describe('Campaigns API Routes', () => {
         status: 'running',
       };
       const mockSupabase = {
-        from: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
+        from: vi.fn().mockImplementation((table: string) => {
+          if (table === 'contacts') {
+            return {
+              select: vi.fn().mockReturnThis(),
+              in: vi.fn().mockReturnThis(),
+              eq: vi.fn().mockResolvedValue({
+                data: [{ id: '00000000-0000-4000-a000-000000000001' }],
+                error: null,
+              }),
+            };
+          }
+          if (table === 'campaigns') {
+            return {
+              select: vi.fn().mockReturnThis(),
+              eq: vi.fn().mockReturnThis(),
               single: vi.fn().mockResolvedValue({ data: mockCampaign, error: null }),
-            }),
-          }),
+            };
+          }
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({ data: null, error: null }),
+          };
         }),
       };
       vi.mocked(createClient).mockResolvedValue(mockSupabase as any);

@@ -85,8 +85,17 @@ function buildMockSupabase(configs: any[], matchedRecipients: any[]) {
           then: (resolve: any) => resolve({ data: matchedRecipients, error: null }),
         };
       }
+      if (table === 'contacts') {
+        return {
+          update: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          then: (resolve: any) => resolve({ data: [], error: null }),
+        };
+      }
       return {
         select: vi.fn().mockReturnThis(),
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
         then: (resolve: any) => resolve({ data: [], error: null }),
       };
     }),
@@ -139,6 +148,76 @@ describe('Sync & Send API Routes', () => {
 
     });
 
+    it('detects replies, marks recipient replied, reply_read as false, and sets contact is_active to false', async () => {
+      const updatedCampaignRecipient = vi.fn().mockReturnThis();
+      const updatedContact = vi.fn().mockReturnThis();
+
+      const mockSupa = {
+        from: vi.fn().mockImplementation((table: string) => {
+          if (table === 'smtp_configs') {
+            return {
+              select: vi.fn().mockReturnThis(),
+              not: vi.fn().mockReturnThis(),
+              in: vi.fn().mockReturnThis(),
+              then: (resolve: any) => resolve({ data: [{ id: 'smtp1', imap_host: 'imap.test.com', imap_username: 'test', imap_password: 'pwd' }], error: null }),
+            };
+          }
+          if (table === 'campaign_recipients') {
+            return {
+              select: vi.fn().mockReturnThis(),
+              in: vi.fn().mockReturnThis(),
+              limit: vi.fn().mockReturnThis(),
+              update: updatedCampaignRecipient,
+              eq: vi.fn().mockReturnThis(),
+              then: (resolve: any) => resolve({ data: [{ id: 'rec1', contact_id: 'c1', campaign_id: 'camp1' }], error: null }),
+            };
+          }
+          if (table === 'contacts') {
+            return {
+              update: updatedContact,
+              eq: vi.fn().mockReturnThis(),
+              then: (resolve: any) => resolve({ data: [], error: null }),
+            };
+          }
+          return {
+            select: vi.fn().mockReturnThis(),
+            then: (resolve: any) => resolve({ data: [], error: null }),
+          };
+        }),
+        auth: {
+          getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user1' } }, error: null }),
+        },
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupa as any);
+      vi.mocked(createServiceClient).mockReturnValue(mockSupa as any);
+
+      const req = makeRequest('POST', 'http://localhost:3500/api/sync/imap', {
+        'Authorization': `Bearer test-cron-secret-12345`,
+        'Content-Type': 'application/json',
+      });
+      const prevSecret = process.env.CRON_SECRET;
+      process.env.CRON_SECRET = 'test-cron-secret-12345';
+
+      const res = await POST_IMAP(req);
+      expect(res.status).toBe(200);
+
+      expect(updatedCampaignRecipient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'replied',
+          reply_read: false
+        })
+      );
+
+      expect(updatedContact).toHaveBeenCalledWith(
+        expect.objectContaining({
+          is_active: false
+        })
+      );
+
+      process.env.CRON_SECRET = prevSecret;
+    });
+
     it('detects bounces and marks recipients as failed and logs as bounced', async () => {
       const { simpleParser } = await import('mailparser');
       vi.mocked(simpleParser).mockResolvedValueOnce({
@@ -154,6 +233,7 @@ describe('Sync & Send API Routes', () => {
 
       const updatedCampaignRecipient = vi.fn().mockReturnThis();
       const updatedSendLog = vi.fn().mockReturnThis();
+      const updatedContact = vi.fn().mockReturnThis();
 
       const mockSupa = {
         from: vi.fn().mockImplementation((table: string) => {
@@ -178,6 +258,13 @@ describe('Sync & Send API Routes', () => {
           if (table === 'send_log') {
             return {
               update: updatedSendLog,
+              eq: vi.fn().mockReturnThis(),
+              then: (resolve: any) => resolve({ data: [], error: null }),
+            };
+          }
+          if (table === 'contacts') {
+            return {
+              update: updatedContact,
               eq: vi.fn().mockReturnThis(),
               then: (resolve: any) => resolve({ data: [], error: null }),
             };
@@ -219,6 +306,12 @@ describe('Sync & Send API Routes', () => {
         })
       );
 
+      expect(updatedContact).toHaveBeenCalledWith(
+        expect.objectContaining({
+          verification_status: 'failed'
+        })
+      );
+
       process.env.CRON_SECRET = prevSecret;
     });
 
@@ -237,6 +330,7 @@ describe('Sync & Send API Routes', () => {
 
       const updatedCampaignRecipient = vi.fn().mockReturnThis();
       const updatedSendLog = vi.fn().mockReturnThis();
+      const updatedContact = vi.fn().mockReturnThis();
 
       const mockSupa = {
         from: vi.fn().mockImplementation((table: string) => {
@@ -272,6 +366,13 @@ describe('Sync & Send API Routes', () => {
               then: (resolve: any) => resolve({ data: [], error: null }),
             };
           }
+          if (table === 'contacts') {
+            return {
+              update: updatedContact,
+              eq: vi.fn().mockReturnThis(),
+              then: (resolve: any) => resolve({ data: [], error: null }),
+            };
+          }
           return {
             select: vi.fn().mockReturnThis(),
             then: (resolve: any) => resolve({ data: [], error: null }),
@@ -296,6 +397,11 @@ describe('Sync & Send API Routes', () => {
       expect(res.status).toBe(200);
 
       expect(updatedCampaignRecipient).toHaveBeenCalled();
+      expect(updatedContact).toHaveBeenCalledWith(
+        expect.objectContaining({
+          verification_status: 'failed'
+        })
+      );
 
       process.env.CRON_SECRET = prevSecret;
     });

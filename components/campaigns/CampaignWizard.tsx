@@ -8,9 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ChevronRight, ChevronLeft, Rocket, Users, UsersRound, Check } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 interface GroupMember {
-  contact: { id: string; first_name: string; last_name?: string; email: string };
+  contact: { id: string; first_name: string; last_name?: string; email: string; is_active?: boolean };
 }
 
 interface MailGroup {
@@ -54,17 +55,47 @@ export function CampaignWizard({ templates, smtpConfigs, companies, groups }: Ca
   const [recipientMode, setRecipientMode] = useState<'manual' | 'groups'>('manual');
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
 
-  // Derived — contacts from selected groups (deduplicated)
+  // Derived — contacts from selected groups (deduplicated, active only)
   const groupContactIds = useMemo(() => {
     const ids = new Set<string>();
     groups
       .filter(g => selectedGroupIds.includes(g.id))
-      .forEach(g => g.members?.forEach(m => ids.add(m.contact.id)));
+      .forEach(g => g.members?.forEach(m => {
+        if (m.contact.is_active !== false) {
+          ids.add(m.contact.id);
+        }
+      }));
     return Array.from(ids);
   }, [groups, selectedGroupIds]);
 
-  // The final recipient list used at launch
-  const finalRecipients = recipientMode === 'groups' ? groupContactIds : selectedContacts;
+  // Derived — inactive contact count in selected groups
+  const groupInactiveCount = useMemo(() => {
+    const inactiveIds = new Set<string>();
+    groups
+      .filter(g => selectedGroupIds.includes(g.id))
+      .forEach(g => g.members?.forEach(m => {
+        if (m.contact.is_active === false) {
+          inactiveIds.add(m.contact.id);
+        }
+      }));
+    return inactiveIds.size;
+  }, [groups, selectedGroupIds]);
+
+  // The final recipient list used at launch (excluding inactive contacts)
+  const finalRecipients = useMemo(() => {
+    if (recipientMode === 'groups') {
+      return groupContactIds;
+    }
+    const activeContactIds = new Set<string>();
+    companies.forEach((c: any) => {
+      c.contacts?.forEach((ct: any) => {
+        if (ct.is_active !== false && selectedContacts.includes(ct.id)) {
+          activeContactIds.add(ct.id);
+        }
+      });
+    });
+    return Array.from(activeContactIds);
+  }, [recipientMode, groupContactIds, selectedContacts, companies]);
 
   const toggleContact = (contactId: string) => {
     setSelectedContacts(prev => 
@@ -270,7 +301,7 @@ export function CampaignWizard({ templates, smtpConfigs, companies, groups }: Ca
                 </div>
                 <div className="max-h-[400px] overflow-y-auto space-y-4 pr-2 border border-border rounded-[11px] p-4">
                   {companies.map((company: any) => {
-                    const companyContactIds = company.contacts?.map((c: any) => c.id) || [];
+                    const companyContactIds = company.contacts?.filter((c: any) => c.is_active !== false).map((c: any) => c.id) || [];
                     const isAllSelected = companyContactIds.length > 0 && companyContactIds.every((id: string) => selectedContacts.includes(id));
                     const isPartiallySelected = companyContactIds.some((id: string) => selectedContacts.includes(id)) && !isAllSelected;
                     const handleCompanyToggle = () => {
@@ -294,23 +325,38 @@ export function CampaignWizard({ templates, smtpConfigs, companies, groups }: Ca
                             className="rounded border-border w-4 h-4 cursor-pointer"
                           />
                           <h3 className="text-[14px] font-semibold text-foreground cursor-pointer select-none" onClick={handleCompanyToggle}>
-                            {company.name} <span className="text-[12px] font-normal text-muted-foreground ml-1">({companyContactIds.length})</span>
+                            {company.name} <span className="text-[12px] font-normal text-muted-foreground ml-1">({companyContactIds.length} active)</span>
                           </h3>
                         </div>
                         {company.contacts?.length > 0 && (
                           <div className="space-y-1 pl-7 border-l-2 border-border/50 ml-2">
-                            {company.contacts.map((contact: any) => (
-                              <label key={contact.id} className="flex items-center gap-3 py-1 cursor-pointer">
-                                <input type="checkbox"
-                                  checked={selectedContacts.includes(contact.id)}
-                                  onChange={() => toggleContact(contact.id)}
-                                  className="rounded border-border w-4 h-4"
-                                />
-                                <span className="text-[13px] text-muted-foreground">
-                                  {contact.first_name} {contact.last_name} <span className="opacity-60">· {contact.email}</span>
-                                </span>
-                              </label>
-                            ))}
+                            {company.contacts.map((contact: any) => {
+                              const isContactInactive = contact.is_active === false;
+                              return (
+                                <label key={contact.id} className={cn(
+                                  "flex items-center gap-3 py-1 cursor-pointer select-none",
+                                  isContactInactive && "opacity-55 cursor-not-allowed"
+                                )}>
+                                  <input type="checkbox"
+                                    checked={selectedContacts.includes(contact.id)}
+                                    onChange={() => !isContactInactive && toggleContact(contact.id)}
+                                    disabled={isContactInactive}
+                                    className="rounded border-border w-4 h-4"
+                                  />
+                                  <span className={cn(
+                                    "text-[13px] text-muted-foreground flex items-center gap-2",
+                                    isContactInactive && "line-through text-muted-foreground/60"
+                                  )}>
+                                    {contact.first_name} {contact.last_name} <span className="opacity-60">· {contact.email}</span>
+                                    {isContactInactive && (
+                                      <span className="text-[8px] font-semibold text-neutral-500 bg-neutral-100 dark:text-neutral-400 dark:bg-neutral-500/10 px-1 py-0.2 rounded border border-neutral-200 dark:border-neutral-500/20 shrink-0">
+                                        Replied / Inactive
+                                      </span>
+                                    )}
+                                  </span>
+                                </label>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -333,48 +379,68 @@ export function CampaignWizard({ templates, smtpConfigs, companies, groups }: Ca
                       <a href="/groups" target="_blank" className="text-[12px] text-primary underline mt-1 inline-block">Create a group →</a>
                     </div>
                   ) : (
-                    <div className="border border-border rounded-[12px] divide-y divide-border/60 overflow-hidden">
-                      {groups.map(group => {
-                        const isSel = selectedGroupIds.includes(group.id);
-                        return (
-                          <button
-                            key={group.id}
-                            type="button"
-                            onClick={() =>
-                              setSelectedGroupIds(prev =>
-                                isSel ? prev.filter(id => id !== group.id) : [...prev, group.id]
-                              )
-                            }
-                            className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                              isSel ? 'bg-primary/8' : 'hover:bg-accent/40'
-                            }`}
-                          >
-                            <div
-                              className="w-8 h-8 rounded-[8px] shrink-0 flex items-center justify-center text-white text-[11px] font-bold"
-                              style={{ backgroundColor: group.color }}
+                    <>
+                      <div className="border border-border rounded-[12px] divide-y divide-border/60 overflow-hidden bg-background">
+                        {groups.map(group => {
+                          const isSel = selectedGroupIds.includes(group.id);
+                          return (
+                            <button
+                              key={group.id}
+                              type="button"
+                              onClick={() =>
+                                setSelectedGroupIds(prev =>
+                                  isSel ? prev.filter(id => id !== group.id) : [...prev, group.id]
+                                )
+                              }
+                              className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                                isSel ? 'bg-primary/8' : 'hover:bg-accent/40'
+                              }`}
                             >
-                              {group.name.slice(0, 2).toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[13px] font-medium text-foreground truncate">{group.name}</p>
-                              <p className="text-[11px] text-muted-foreground">{group.members?.length ?? 0} contacts</p>
-                            </div>
-                            {isSel && <Check className="w-4 h-4 text-primary shrink-0" />}
+                              <div
+                                className="w-8 h-8 rounded-[8px] shrink-0 flex items-center justify-center text-white text-[11px] font-bold"
+                                style={{ backgroundColor: group.color }}
+                              >
+                                {group.name.slice(0, 2).toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[13px] font-medium text-foreground truncate">{group.name}</p>
+                                <p className="text-[11px] text-muted-foreground">{group.members?.length ?? 0} contacts</p>
+                              </div>
+                              {isSel && <Check className="w-4 h-4 text-primary shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      
+                      {groupInactiveCount > 0 && (
+                        <div className="text-[12px] text-amber-600 bg-amber-500/10 border border-amber-500/20 rounded-[8px] px-3.5 py-2.5 mt-3 flex items-center justify-between">
+                          <span className="font-medium">
+                            ⚠️ {groupInactiveCount} contact{groupInactiveCount !== 1 ? 's' : ''} in selected group{selectedGroupIds.length !== 1 ? 's' : ''} are inactive due to previous replies.
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const el = document.getElementById('recipient-preview-header');
+                              if (el) el.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                            className="font-semibold underline hover:text-amber-700 ml-2 shrink-0 cursor-pointer text-amber-700 dark:text-amber-400"
+                          >
+                            Review them
                           </button>
-                        );
-                      })}
-                    </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 
                 {/* Right: preview */}
-                <div className="border border-border rounded-[12px] overflow-hidden">
-                  <div className="px-4 py-3 bg-secondary/30 border-b border-border">
+                <div className="border border-border rounded-[12px] overflow-hidden bg-background">
+                  <div id="recipient-preview-header" className="px-4 py-3 bg-secondary/30 border-b border-border">
                     <p className="text-[13px] font-medium text-foreground">
-                      Preview · {groupContactIds.length} unique contact{groupContactIds.length !== 1 ? 's' : ''}
+                      Preview · {groupContactIds.length} unique active contact{groupContactIds.length !== 1 ? 's' : ''}
                     </p>
                   </div>
-                  {groupContactIds.length === 0 ? (
+                  {groupContactIds.length === 0 && groupInactiveCount === 0 ? (
                     <div className="flex items-center justify-center py-16 text-center px-4">
                       <p className="text-[13px] text-muted-foreground">Select a group to preview its contacts here.</p>
                     </div>
@@ -389,19 +455,30 @@ export function CampaignWizard({ templates, smtpConfigs, companies, groups }: Ca
                               <span className="text-[12px] font-medium text-muted-foreground">{group.name}</span>
                             </div>
                             {group.members?.map(({ contact }) => (
-                              <div key={contact.id} className="flex items-center gap-3 px-4 py-2 pl-6">
+                              <div key={contact.id} className={cn(
+                                "flex items-center gap-3 px-4 py-2 pl-6 transition-all",
+                                contact.is_active === false && "opacity-60 bg-muted/20"
+                              )}>
                                 <div
                                   className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-white text-[9px] font-bold"
-                                  style={{ backgroundColor: group.color }}
+                                  style={{ backgroundColor: contact.is_active === false ? '#9ca3af' : group.color }}
                                 >
                                   {contact.first_name[0]}{(contact.last_name || '')[0]}
                                 </div>
-                                <div className="min-w-0">
-                                  <p className="text-[12px] font-medium text-foreground truncate">
+                                <div className="min-w-0 flex-1">
+                                  <p className={cn(
+                                    "text-[12px] font-medium text-foreground truncate",
+                                    contact.is_active === false && "line-through text-muted-foreground"
+                                  )}>
                                     {contact.first_name} {contact.last_name}
                                   </p>
                                   <p className="text-[11px] text-muted-foreground truncate">{contact.email}</p>
                                 </div>
+                                {contact.is_active === false && (
+                                  <span className="text-[9px] font-semibold text-neutral-500 bg-neutral-100 dark:text-neutral-400 dark:bg-neutral-500/10 px-1.5 py-0.5 rounded border border-neutral-200 dark:border-neutral-500/20 shrink-0">
+                                    Replied / Inactive
+                                  </span>
+                                )}
                               </div>
                             ))}
                           </div>

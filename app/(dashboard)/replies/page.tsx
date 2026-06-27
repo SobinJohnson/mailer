@@ -5,6 +5,13 @@ export const dynamic = 'force-dynamic';
 
 export default async function RepliesPage() {
   const supabase = await createClient();
+
+  // Mark all unread replies as read when visiting this page
+  await supabase
+    .from('campaign_recipients')
+    .update({ reply_read: true })
+    .eq('status', 'replied')
+    .eq('reply_read', false);
   
   const { data: replies, error } = await supabase
     .from('campaign_recipients')

@@ -27,6 +27,8 @@ export interface Contact {
   notes: string | null;
   linkedin_url: string | null;
   is_general_mailbox: boolean;
+  verification_status?: 'verified' | 'risky' | 'failed' | 'unverified';
+  is_active?: boolean;
   created_at: string;
   // Joined fields
   company?: Company;
@@ -95,6 +97,7 @@ export interface CampaignRecipient {
   message_id: string | null;
   parent_message_id: string | null;
   replied_at: string | null;
+  reply_read?: boolean;
   step: number;
   created_at: string;
   // Joined fields

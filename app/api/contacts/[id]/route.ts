@@ -14,6 +14,8 @@ const contactSchema = z.object({
   status: z.enum(['active', 'bounced', 'unsubscribed', 'do_not_contact']).optional(),
   tags: z.array(z.string()).optional(),
   is_general_mailbox: z.boolean().optional(),
+  verification_status: z.enum(['verified', 'risky', 'failed', 'unverified']).optional(),
+  is_active: z.boolean().optional(),
 });
 
 export async function GET(

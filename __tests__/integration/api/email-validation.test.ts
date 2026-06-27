@@ -2,6 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import dns from 'dns';
 import net from 'net';
 import { EventEmitter } from 'events';
+
+// Mock the supabase server module
+vi.mock('@/lib/supabase/server', () => ({
+  createClient: vi.fn(),
+  createServiceClient: vi.fn(),
+  ensureSystemSettings: vi.fn().mockResolvedValue(undefined),
+}));
+
+import { createClient } from '@/lib/supabase/server';
 import { POST } from '@/app/api/contacts/validate/route';
 
 // Mock dns
@@ -42,6 +51,27 @@ class MockSocket extends EventEmitter {
 describe('POST /api/contacts/validate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default mock to return an authenticated user session
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user1' } }, error: null }),
+      },
+    } as any);
+  });
+
+  it('returns 401 Unauthorized for unauthenticated requests', async () => {
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      },
+    } as any);
+
+    const req = makeRequest({ email: 'test@deliverable.com' });
+    const res = await POST(req);
+    const json = await res.json();
+
+    expect(res.status).toBe(401);
+    expect(json.error).toBe('Unauthorized');
   });
 
   it('fails immediately for invalid syntax (no @)', async () => {
@@ -162,11 +192,11 @@ describe('POST /api/contacts/validate', () => {
     ]);
 
     const mockSocket = new MockSocket();
-    vi.mocked(net.createConnection).mockReturnValue(mockSocket as any);
-
-    // Simulate timeout trigger
-    process.nextTick(() => {
-      mockSocket.emit('timeout');
+    vi.mocked(net.createConnection).mockImplementation(() => {
+      process.nextTick(() => {
+        mockSocket.emit('timeout');
+      });
+      return mockSocket as any;
     });
 
     const req = makeRequest({ email: 'user@blocked-port.com' });
@@ -185,13 +215,13 @@ describe('POST /api/contacts/validate', () => {
     ]);
 
     const mockSocket = new MockSocket();
-    vi.mocked(net.createConnection).mockReturnValue(mockSocket as any);
-
-    // Simulate connection error
-    process.nextTick(() => {
-      const err = new Error('Connection refused');
-      (err as any).code = 'ECONNREFUSED';
-      mockSocket.emit('error', err);
+    vi.mocked(net.createConnection).mockImplementation(() => {
+      process.nextTick(() => {
+        const err = new Error('Connection refused');
+        (err as any).code = 'ECONNREFUSED';
+        mockSocket.emit('error', err);
+      });
+      return mockSocket as any;
     });
 
     const req = makeRequest({ email: 'user@blocked-port.com' });

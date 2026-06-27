@@ -1,7 +1,7 @@
 'use client';
 
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Table, TableBody, TableCell,
   TableHead, TableHeader, TableRow,
@@ -29,6 +29,15 @@ interface ContactTableProps {
 export function ContactTable({ initialContacts, companies }: ContactTableProps) {
   const router = useRouter();
   const [importOpen, setImportOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
+
+  const filteredByStatus = useMemo(() => {
+    return initialContacts.filter(c => {
+      if (activeFilter === 'active') return c.is_active !== false;
+      if (activeFilter === 'inactive') return c.is_active === false;
+      return true;
+    });
+  }, [initialContacts, activeFilter]);
 
   const {
     search,
@@ -40,7 +49,7 @@ export function ContactTable({ initialContacts, companies }: ContactTableProps) 
     setCurrentPage,
     handleSort,
   } = useClientTable({
-    data: initialContacts,
+    data: filteredByStatus,
     pageSize: 10,
     initialSortBy: 'created_at',
     searchableFields: ['first_name', 'last_name', 'email'],
@@ -133,11 +142,46 @@ export function ContactTable({ initialContacts, companies }: ContactTableProps) 
               className="pl-8 h-8 rounded-[6px] text-[13px] bg-background border-border"
             />
           </div>
+          
+          {/* Tag-based filters (Active / Inactive) */}
+          <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-[8px] border border-border">
+            <button
+              type="button"
+              onClick={() => { setActiveFilter('all'); setCurrentPage(1); }}
+              className={cn(
+                "px-2.5 py-1 text-[11px] font-medium rounded-[6px] transition-all cursor-pointer",
+                activeFilter === 'all' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={() => { setActiveFilter('active'); setCurrentPage(1); }}
+              className={cn(
+                "px-2.5 py-1 text-[11px] font-medium rounded-[6px] transition-all cursor-pointer",
+                activeFilter === 'active' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Active
+            </button>
+            <button
+              type="button"
+              onClick={() => { setActiveFilter('inactive'); setCurrentPage(1); }}
+              className={cn(
+                "px-2.5 py-1 text-[11px] font-medium rounded-[6px] transition-all cursor-pointer",
+                activeFilter === 'inactive' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Inactive
+            </button>
+          </div>
+          
           <span className="text-[12px] text-muted-foreground ml-auto">
             {totalResults} result{totalResults !== 1 ? 's' : ''}
           </span>
         </div>
-
+ 
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent border-b border-border bg-secondary/20">
@@ -151,20 +195,21 @@ export function ContactTable({ initialContacts, companies }: ContactTableProps) 
               <TableHead onClick={() => handleSort('designation')} className="cursor-pointer text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.08em] h-10 hover:text-foreground">
                 <div className="flex items-center gap-1">Role <ArrowUpDown className="w-3 h-3" /></div>
               </TableHead>
+              <TableHead className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.08em] h-10">Status</TableHead>
               <TableHead className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.08em] h-10 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-40 text-center">
+                <TableCell colSpan={6} className="h-40 text-center">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Users className="w-7 h-7 text-muted-foreground/30" />
                     <p className="text-[13px] font-medium text-foreground">
-                      {search ? 'No contacts matched.' : 'No contacts yet'}
+                      {search || activeFilter !== 'all' ? 'No contacts matched.' : 'No contacts yet'}
                     </p>
                     <p className="text-[12px] text-muted-foreground">
-                      {search ? 'Try a different search term.' : 'Click "Add Contact" above to get started.'}
+                      {search || activeFilter !== 'all' ? 'Try a different search term or filter status.' : 'Click "Add Contact" above to get started.'}
                     </p>
                   </div>
                 </TableCell>
@@ -177,7 +222,7 @@ export function ContactTable({ initialContacts, companies }: ContactTableProps) 
                   onClick={() => router.push(`/contacts/${contact.id}`)}
                 >
                   <TableCell className="py-3.5">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-[14px] font-medium text-foreground">
                         {contact.first_name} {contact.last_name}
                       </span>
@@ -212,8 +257,41 @@ export function ContactTable({ initialContacts, companies }: ContactTableProps) 
                   <TableCell className="text-[13px] text-muted-foreground py-3.5">
                     {contact.designation || '—'}
                   </TableCell>
+                  <TableCell className="py-3.5">
+                    <span className={cn(
+                      "text-[10px] font-semibold px-2 py-0.5 rounded-[4px] border whitespace-nowrap",
+                      contact.is_active !== false 
+                        ? "text-emerald-600 bg-emerald-100 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20" 
+                        : "text-neutral-500 bg-neutral-100 border-neutral-200 dark:text-neutral-400 dark:bg-neutral-500/10 dark:border-neutral-500/20"
+                    )}>
+                      {contact.is_active !== false ? 'Active' : 'Inactive'}
+                    </span>
+                  </TableCell>
                   <TableCell className="py-3.5 text-right">
-                    <div className="flex items-center justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-wrap sm:flex-nowrap">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const newStatus = contact.is_active === false;
+                          try {
+                            const res = await fetch(`/api/contacts/${contact.id}`, {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ is_active: newStatus })
+                            });
+                            if (!res.ok) throw new Error('Failed to toggle status');
+                            toast.success(newStatus ? 'Contact activated' : 'Contact deactivated');
+                            router.refresh();
+                          } catch (err: any) {
+                            toast.error('Failed to toggle status', { description: err.message });
+                          }
+                        }}
+                        className="h-7 text-[12px] px-2 border-border hover:bg-accent/60"
+                      >
+                        {contact.is_active !== false ? 'Deactivate' : 'Activate'}
+                      </Button>
                       <Link 
                         href={`/contacts/${contact.id}/edit`}
                         className={cn(

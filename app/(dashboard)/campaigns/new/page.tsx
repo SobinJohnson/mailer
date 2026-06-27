@@ -9,10 +9,10 @@ export default async function NewCampaignPage() {
   const [templatesRes, smtpRes, companiesRes, groupsRes] = await Promise.all([
     supabase.from('email_templates').select('id, name, subject').order('name'),
     supabase.from('smtp_configs').select('id, label, from_email, from_name').order('label'),
-    supabase.from('companies').select('id, name, tags, contacts(id, first_name, last_name, email, is_primary)').eq('status', 'active'),
+    supabase.from('companies').select('id, name, tags, contacts(id, first_name, last_name, email, is_primary, is_active)').eq('status', 'active'),
     supabase
       .from('contact_groups')
-      .select('id, name, description, color, members:contact_group_members(contact:contacts(id, first_name, last_name, email))')
+      .select('id, name, description, color, members:contact_group_members(contact:contacts(id, first_name, last_name, email, is_active))')
       .order('name'),
   ]);
 

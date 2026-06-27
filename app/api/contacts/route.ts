@@ -13,6 +13,8 @@ const contactSchema = z.object({
   notes: z.string().optional(),
   linkedin_url: z.string().url().optional().or(z.literal('')),
   is_general_mailbox: z.boolean().optional().default(false),
+  verification_status: z.enum(['verified', 'risky', 'failed', 'unverified']).optional().default('unverified'),
+  is_active: z.boolean().optional().default(true),
 });
 
 export async function GET(request: Request) {
@@ -21,6 +23,7 @@ export async function GET(request: Request) {
   
   const search = searchParams.get('search');
   const company_id = searchParams.get('company_id');
+  const activeParam = searchParams.get('is_active');
   
   let query = supabase.from('contacts').select(`
     *,
@@ -35,6 +38,12 @@ export async function GET(request: Request) {
   
   if (company_id) {
     query = query.eq('company_id', company_id);
+  }
+
+  if (activeParam === 'true') {
+    query = query.eq('is_active', true);
+  } else if (activeParam === 'false') {
+    query = query.eq('is_active', false);
   }
 
   query = query.order('created_at', { ascending: false });

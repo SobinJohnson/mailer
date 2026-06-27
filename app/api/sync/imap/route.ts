@@ -85,11 +85,16 @@ export async function POST(request: Request) {
           const parsed = (await simpleParser(message.source)) as any;
           
           // Check if this is a bounce (Delivery Status Notification / Undeliverable)
+          const fromEmail = parsed.from?.value?.[0]?.address || '';
           const fromText = parsed.from?.text || '';
           const subjectText = parsed.subject || '';
-          const isBounce = 
-            /mailer-daemon|postmaster|daemon|noreply|no-reply/i.test(fromText) ||
-            /bounce|undeliver|delivery status|returned mail|failure notice|non-delivery/i.test(subjectText);
+          const isSystemSender = /^(mailer-daemon|postmaster|mail-daemon|daemon|noreply|no-reply)@/i.test(fromEmail) ||
+                                 /mailer-daemon|postmaster/i.test(fromText);
+          const hasBounceSubject = /bounce|undeliver|delivery status|returned mail|failure notice|non-delivery/i.test(subjectText);
+          const isReport = parsed.contentType?.value === 'multipart/report' || 
+                           parsed.headers?.get('content-type')?.includes('report-type=delivery-status');
+          
+          const isBounce = isSystemSender && (hasBounceSubject || isReport);
 
           const inReplyTo = parsed.inReplyTo;
           let references = parsed.references;
@@ -157,6 +162,20 @@ export async function POST(request: Request) {
                   console.log('Successfully marked recipient as failed on bounce:', original.id);
                 }
 
+                // Update contact verification_status in contacts table to 'failed'
+                if (original.contact_id) {
+                  const { error: contactError } = await supabase
+                    .from('contacts')
+                    .update({ verification_status: 'failed' })
+                    .eq('id', original.contact_id);
+                  
+                  if (contactError) {
+                    console.error('Failed to update contact verification_status on bounce:', contactError);
+                  } else {
+                    console.log('Successfully set contact verification_status to failed:', original.contact_id);
+                  }
+                }
+
                 // Update send_log to 'bounced' (which is allowed)
                 const { error: logError } = await supabase
                   .from('send_log')
@@ -185,7 +204,8 @@ export async function POST(request: Request) {
                   .update({ 
                     status: 'replied', 
                     replied_at: new Date().toISOString(),
-                    reply_snapshot: replySnapshot
+                    reply_snapshot: replySnapshot,
+                    reply_read: false
                   })
                   .eq('id', original.id)
                   .select();
@@ -194,6 +214,18 @@ export async function POST(request: Request) {
                   console.error('Failed to update recipient to replied:', updateError);
                 } else {
                   console.log('Successfully updated to replied:', updateData);
+                }
+
+                if (original.contact_id) {
+                  const { error: contactError } = await supabase
+                    .from('contacts')
+                    .update({ is_active: false })
+                    .eq('id', original.contact_id);
+                  if (contactError) {
+                    console.error('Failed to set contact is_active to false on reply:', contactError);
+                  } else {
+                    console.log('Successfully set contact is_active to false on reply:', original.contact_id);
+                  }
                 }
 
                 // Skip any pending follow-ups for this contact in this campaign

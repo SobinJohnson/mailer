@@ -124,6 +124,72 @@ describe('POST /api/contacts', () => {
     expect(json.data).toMatchObject({ first_name: 'Bob' });
   });
 
+  it('saves verification_status when creating a contact', async () => {
+    const contactInput = {
+      ...validContact,
+      verification_status: 'verified',
+    };
+    const createdContact = { id: 'c2', ...contactInput };
+    
+    const insertMock = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({ data: createdContact, error: null }),
+      }),
+    });
+    
+    const mockSupabase = {
+      from: vi.fn().mockReturnValue({
+        insert: insertMock,
+      }),
+    };
+    vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
+
+    const req = makeRequest('POST', 'http://localhost:3500/api/contacts', contactInput);
+    const res = await POST(req);
+
+    expect(res.status).toBe(201);
+    const json = await res.json();
+    expect(json.data.verification_status).toBe('verified');
+    expect(insertMock).toHaveBeenCalledWith([
+      expect.objectContaining({
+        verification_status: 'verified',
+      })
+    ]);
+  });
+
+  it('saves is_active when creating a contact', async () => {
+    const contactInput = {
+      ...validContact,
+      is_active: false,
+    };
+    const createdContact = { id: 'c2', ...contactInput };
+    
+    const insertMock = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({ data: createdContact, error: null }),
+      }),
+    });
+    
+    const mockSupabase = {
+      from: vi.fn().mockReturnValue({
+        insert: insertMock,
+      }),
+    };
+    vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
+
+    const req = makeRequest('POST', 'http://localhost:3500/api/contacts', contactInput);
+    const res = await POST(req);
+
+    expect(res.status).toBe(201);
+    const json = await res.json();
+    expect(json.data.is_active).toBe(false);
+    expect(insertMock).toHaveBeenCalledWith([
+      expect.objectContaining({
+        is_active: false,
+      })
+    ]);
+  });
+
   it('returns 400 when email is invalid (Zod validation)', async () => {
     vi.mocked(createClient).mockResolvedValue(buildInsertMock({ data: null, error: null }) as any);
 
@@ -246,6 +312,62 @@ describe('PUT /api/contacts/[id]', () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.data.first_name).toBe('Bobby');
+  });
+
+  it('updates verification_status successfully', async () => {
+    const contact = { id: 'c2', first_name: 'Bob', email: 'bob@example.com', verification_status: 'risky' };
+    const updateMock = vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: contact, error: null }),
+        }),
+      }),
+    });
+    const mockSupabase = {
+      from: vi.fn().mockReturnValue({
+        update: updateMock,
+      }),
+    };
+    vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
+
+    const req = makeRequest('PUT', 'http://localhost:3500/api/contacts/c2', { verification_status: 'risky' });
+    const res = await PUT(req, { params: Promise.resolve({ id: 'c2' }) });
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.data.verification_status).toBe('risky');
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        verification_status: 'risky',
+      })
+    );
+  });
+
+  it('updates is_active successfully', async () => {
+    const contact = { id: 'c2', first_name: 'Bob', email: 'bob@example.com', is_active: false };
+    const updateMock = vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: contact, error: null }),
+        }),
+      }),
+    });
+    const mockSupabase = {
+      from: vi.fn().mockReturnValue({
+        update: updateMock,
+      }),
+    };
+    vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
+
+    const req = makeRequest('PUT', 'http://localhost:3500/api/contacts/c2', { is_active: false });
+    const res = await PUT(req, { params: Promise.resolve({ id: 'c2' }) });
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.data.is_active).toBe(false);
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        is_active: false,
+      })
+    );
   });
 });
 

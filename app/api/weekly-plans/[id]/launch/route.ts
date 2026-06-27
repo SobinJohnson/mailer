@@ -53,11 +53,17 @@ export async function POST(_req: Request, { params }: Params) {
       // Fetch contacts in this group
       const { data: members } = await supabase
         .from('contact_group_members')
-        .select('contact_id')
+        .select('contact_id, contact:contacts(is_active)')
         .eq('group_id', schedule.group_id);
 
-      if (!members?.length) {
-        errors.push({ day: schedule.day_of_week, error: 'Group has no contacts' });
+      const contactIds = members
+        ? members
+            .filter(m => (m as any).contact?.is_active !== false)
+            .map(m => m.contact_id)
+        : [];
+
+      if (contactIds.length === 0) {
+        errors.push({ day: schedule.day_of_week, error: 'Group has no active contacts' });
         continue;
       }
 
@@ -75,8 +81,6 @@ export async function POST(_req: Request, { params }: Params) {
 
       const [hStr, mStr] = (schedule.send_time || '09:00').split(':');
       const startAt = new Date(`${targetDateStr}T${hStr || '09'}:${mStr || '00'}:00+05:30`);
-
-      const contactIds = members.map(m => m.contact_id);
 
       // Calculate staggered send times
       const sendTimes = calculateSendTimes(
