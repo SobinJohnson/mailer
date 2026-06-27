@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import { 
   Building2, Users, Megaphone, Send, ArrowRight, 
@@ -515,7 +516,7 @@ export default function DashboardPage() {
       </div>
 
       {/* "While You Were Away" Modal */}
-      {showAwayModal && awayStats && (
+      {showAwayModal && awayStats && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in">
           <div className="relative w-full max-w-md p-6 rounded-[16px] border border-border bg-background shadow-2xl space-y-4 animate-scale-in">
             <div className="flex items-center justify-between pb-2 border-b border-border">
@@ -564,7 +565,8 @@ export default function DashboardPage() {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
