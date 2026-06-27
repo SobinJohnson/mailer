@@ -62,7 +62,17 @@ export async function ensureSystemSettings() {
     // Upsert key/value system settings
     const upserts = [
       supabase.from('system_settings').upsert({ key: 'app_url', value: appUrl }),
-      supabase.from('system_settings').upsert({ key: 'cron_secret', value: cronSecret })
+      supabase.from('system_settings').upsert({ key: 'cron_secret', value: cronSecret }),
+      // These two allow pg_cron to call the sync-imap Edge Function directly
+      // (Edge Function URL = SUPABASE_URL + /functions/v1/sync-imap, always reachable from cloud)
+      supabase.from('system_settings').upsert({
+        key: 'supabase_url',
+        value: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      }),
+      supabase.from('system_settings').upsert({
+        key: 'supabase_service_key',
+        value: process.env.SUPABASE_SERVICE_KEY!,
+      }),
     ];
 
     if (vercelBypassToken) {
