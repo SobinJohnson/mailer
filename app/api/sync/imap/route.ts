@@ -134,8 +134,10 @@ export async function POST(request: Request) {
             });
           }
 
+          let original = null;
+
           if (searchIds.length > 0) {
-            // Check if we sent this message
+            // Check if we sent this message by Message-ID
             const { data: matchedRecipients } = await supabase
               .from('campaign_recipients')
               .select('id, contact_id, campaign_id')
@@ -143,8 +145,47 @@ export async function POST(request: Request) {
               .limit(1);
 
             if (matchedRecipients && matchedRecipients.length > 0) {
-              matches++;
-              const original = matchedRecipients[0];
+              original = matchedRecipients[0];
+            }
+          }
+
+          // Fallback: If no match found by Message-ID, search by sender email address
+          if (!original && fromEmail && !isBounce) {
+            const { data: contacts } = await supabase
+              .from('contacts')
+              .select('id')
+              .eq('email', fromEmail);
+
+            if (contacts && contacts.length > 0) {
+              const contactIds = contacts.map((c: any) => c.id);
+              
+              const { data: campaignsUsingSmtp } = await supabase
+                .from('campaigns')
+                .select('id')
+                .eq('smtp_config_id', config.id);
+
+              if (campaignsUsingSmtp && campaignsUsingSmtp.length > 0) {
+                const campaignIds = campaignsUsingSmtp.map((c: any) => c.id);
+                
+                const { data: fallbackRecipients } = await supabase
+                  .from('campaign_recipients')
+                  .select('id, contact_id, campaign_id')
+                  .in('contact_id', contactIds)
+                  .in('campaign_id', campaignIds)
+                  .eq('status', 'sent')
+                  .order('sent_at', { ascending: false })
+                  .limit(1);
+
+                if (fallbackRecipients && fallbackRecipients.length > 0) {
+                  original = fallbackRecipients[0];
+                  console.log(`Matched reply by fallback email search for ${fromEmail}`);
+                }
+              }
+            }
+          }
+
+          if (original) {
+            matches++;
 
               if (isBounce) {
                 // Update recipient status to 'failed' (since 'bounced' isn't allowed in constraint)
@@ -238,8 +279,7 @@ export async function POST(request: Request) {
               }
             }
           }
-        }
-      } finally {
+        } finally {
         lock.release();
       }
 

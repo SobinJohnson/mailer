@@ -403,6 +403,112 @@ describe('Sync & Send API Routes', () => {
         })
       );
 
+    });
+
+    it('detects replies matching by sender email address fallback when message-id fails', async () => {
+      const { simpleParser } = await import('mailparser');
+      vi.mocked(simpleParser).mockResolvedValueOnce({
+        inReplyTo: 'non-matching-id',
+        references: [],
+        messageId: 'reply-message-id',
+        from: { value: [{ address: 'sender@reply.com' }], text: 'sender@reply.com' },
+        subject: 'Re: Subject',
+        text: 'This is a reply text body',
+        html: '<p>This is a reply html body</p>',
+        date: new Date(),
+      } as any);
+
+      const updatedCampaignRecipient = vi.fn().mockReturnThis();
+
+      const mockSupa = {
+        from: vi.fn().mockImplementation((table: string) => {
+          if (table === 'smtp_configs') {
+            return {
+              select: vi.fn().mockReturnThis(),
+              not: vi.fn().mockReturnThis(),
+              in: vi.fn().mockReturnThis(),
+              then: (resolve: any) => resolve({ data: [{ id: 'smtp1', imap_host: 'imap.test.com', imap_username: 'test', imap_password: 'pwd' }], error: null }),
+            };
+          }
+          if (table === 'campaign_recipients') {
+            return {
+              select: vi.fn().mockImplementation(() => {
+                return {
+                  in: vi.fn().mockImplementation((field: string, values: any[]) => {
+                    if (field === 'message_id') {
+                      // Return no match for Message-ID
+                      return {
+                        limit: vi.fn().mockReturnThis(),
+                        then: (resolve: any) => resolve({ data: [], error: null }),
+                      };
+                    }
+                    if (field === 'contact_id') {
+                      // Return fallback match
+                      return {
+                        in: vi.fn().mockReturnThis(),
+                        eq: vi.fn().mockReturnThis(),
+                        order: vi.fn().mockReturnThis(),
+                        limit: vi.fn().mockReturnThis(),
+                        then: (resolve: any) => resolve({ data: [{ id: 'rec1', contact_id: 'c1', campaign_id: 'camp1' }], error: null }),
+                      };
+                    }
+                    return { limit: vi.fn().mockReturnThis(), then: (resolve: any) => resolve({ data: [], error: null }) };
+                  }),
+                };
+              }),
+              update: updatedCampaignRecipient,
+              eq: vi.fn().mockReturnThis(),
+              then: (resolve: any) => resolve({ data: [], error: null }),
+            };
+          }
+          if (table === 'contacts') {
+            return {
+              select: vi.fn().mockReturnThis(),
+              eq: vi.fn().mockReturnValue({
+                then: (resolve: any) => resolve({ data: [{ id: 'c1' }], error: null }),
+              }),
+            };
+          }
+          if (table === 'campaigns') {
+            return {
+              select: vi.fn().mockReturnThis(),
+              eq: vi.fn().mockReturnValue({
+                then: (resolve: any) => resolve({ data: [{ id: 'camp1' }], error: null }),
+              }),
+            };
+          }
+          return {
+            select: vi.fn().mockReturnThis(),
+            update: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            then: (resolve: any) => resolve({ data: [], error: null }),
+          };
+        }),
+        auth: {
+          getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user1' } }, error: null }),
+        },
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupa as any);
+      vi.mocked(createServiceClient).mockReturnValue(mockSupa as any);
+
+      const req = makeRequest('POST', 'http://localhost:3500/api/sync/imap', {
+        'Authorization': `Bearer test-cron-secret-12345`,
+        'Content-Type': 'application/json',
+      });
+      const prevSecret = process.env.CRON_SECRET;
+      process.env.CRON_SECRET = 'test-cron-secret-12345';
+
+      const res = await POST_IMAP(req);
+      expect(res.status).toBe(200);
+
+      expect(updatedCampaignRecipient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'replied',
+          reply_read: false
+        })
+      );
+
       process.env.CRON_SECRET = prevSecret;
     });
   });
