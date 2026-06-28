@@ -105,8 +105,21 @@ Deno.serve(async (req: Request) => {
               const isSystemSender = /^(mailer-daemon|postmaster|mail-daemon|daemon|noreply|no-reply)@/i.test(fromEmail) ||
                                      /mailer-daemon|postmaster/i.test(fromText);
               const hasBounceSubject = /bounce|undeliver|delivery status|returned mail|failure notice|non-delivery/i.test(subjectText);
-              const isReport = parsed.contentType?.value === 'multipart/report' ||
-                               parsed.headers?.get('content-type')?.includes('report-type=delivery-status');
+              let isReport = parsed.contentType?.value === 'multipart/report';
+              const contentTypeHeader = parsed.headers?.get('content-type');
+              if (contentTypeHeader) {
+                if (typeof contentTypeHeader === 'object' && contentTypeHeader !== null) {
+                  const val = contentTypeHeader.value || '';
+                  const params = contentTypeHeader.params || {};
+                  if (val === 'multipart/report' || params['report-type'] === 'delivery-status') {
+                    isReport = true;
+                  }
+                } else if (typeof contentTypeHeader === 'string') {
+                  if (contentTypeHeader.includes('report-type=delivery-status')) {
+                    isReport = true;
+                  }
+                }
+              }
               const isBounce = isSystemSender && (hasBounceSubject || isReport);
 
               const inReplyTo = parsed.inReplyTo;
