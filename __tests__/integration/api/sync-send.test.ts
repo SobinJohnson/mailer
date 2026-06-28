@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockConnect = vi.fn().mockResolvedValue(undefined);
 const mockGetMailboxLock = vi.fn().mockResolvedValue({ release: vi.fn() });
+const mockSearch = vi.fn().mockResolvedValue([1]);
 const mockFetch = vi.fn().mockReturnValue({
   [Symbol.asyncIterator]: async function* () {
     yield { source: 'raw-email-source', envelope: {} };
@@ -14,6 +15,7 @@ vi.mock('imapflow', () => ({
     return {
       connect: mockConnect,
       getMailboxLock: mockGetMailboxLock,
+      search: mockSearch,
       fetch: mockFetch,
       logout: mockLogout,
     };
