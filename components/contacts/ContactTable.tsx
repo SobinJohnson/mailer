@@ -19,7 +19,13 @@ import { useRouter } from 'next/navigation';
 
 import { useClientTable } from '@/hooks/useClientTable';
 import { PaginationControls } from '@/components/shared/PaginationControls';
-import { ArrowUpDown } from 'lucide-react';
+import { ArrowUpDown, MoreHorizontal } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface ContactTableProps {
   initialContacts: Contact[];
@@ -267,8 +273,9 @@ export function ContactTable({ initialContacts, companies }: ContactTableProps) 
                       {contact.is_active !== false ? 'Active' : 'Inactive'}
                     </span>
                   </TableCell>
-                  <TableCell className="py-3.5 text-right">
-                    <div className="flex items-center justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-wrap sm:flex-nowrap">
+                  <TableCell className="py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
+                    {/* Desktop View Action Buttons */}
+                    <div className="hidden md:flex items-center justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <Button
                         variant="outline"
                         size="sm"
@@ -305,6 +312,46 @@ export function ContactTable({ initialContacts, companies }: ContactTableProps) 
                       <Button variant="outline" size="sm" onClick={(e) => handleDelete(contact.id, e)} className="h-7 text-[12px] px-2 text-destructive border-destructive/20 hover:bg-destructive/10">
                         Delete
                       </Button>
+                    </div>
+
+                    {/* Mobile View Dropdown Menu */}
+                    <div className="flex md:hidden items-center justify-end">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="h-8 w-8 p-0 flex items-center justify-center border border-border/40 hover:bg-muted/80 rounded-[6px] outline-none cursor-pointer">
+                          <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[130px] z-[100]">
+                          <DropdownMenuItem
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const newStatus = contact.is_active === false;
+                              try {
+                                const res = await fetch(`/api/contacts/${contact.id}`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ is_active: newStatus })
+                                });
+                                if (!res.ok) throw new Error('Failed to toggle status');
+                                toast.success(newStatus ? 'Contact activated' : 'Contact deactivated');
+                                router.refresh();
+                              } catch (err: any) {
+                                toast.error('Failed to toggle status', { description: err.message });
+                              }
+                            }}
+                          >
+                            {contact.is_active !== false ? 'Deactivate' : 'Activate'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => router.push(`/contacts/${contact.id}/edit`)}>
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive focus:bg-destructive/10 font-medium"
+                            onClick={(e) => handleDelete(contact.id, e)}
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </TableCell>
                 </TableRow>
