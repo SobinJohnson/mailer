@@ -112,9 +112,159 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-        <p className="text-[13px] text-muted-foreground animate-pulse">Compiling database metrics…</p>
+      <div className="space-y-8 pb-12 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-8 bg-secondary rounded-[8px] w-48" />
+            <div className="h-4 bg-muted rounded-[4px] w-80" />
+          </div>
+          <div className="h-6 bg-secondary rounded-full w-28" />
+        </div>
+
+        {/* Bento Grid Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          
+          {/* Bento Cell 1: Outbound Operations Summary (Double-Wide) */}
+          <div className="md:col-span-2 rounded-[16px] border border-border bg-background p-6 flex flex-col justify-between h-[230px] shadow-sm">
+            <div className="space-y-3">
+              <div className="h-5 bg-secondary rounded-[6px] w-56" />
+              <div className="h-4 bg-muted rounded-[4px] w-full" />
+              <div className="h-4 bg-muted rounded-[4px] w-2/3" />
+            </div>
+            <div className="grid grid-cols-3 gap-4 pt-6 border-t border-border/60">
+              {Array.from({ length: 3 }).map((_, idx) => (
+                <div key={idx} className="space-y-2">
+                  <div className="h-3 bg-muted rounded-[4px] w-20" />
+                  <div className="h-7 bg-secondary rounded-[6px] w-12" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Bento Cell 2: Database Volume Status */}
+          <div className="rounded-[16px] border border-border bg-background p-6 flex flex-col justify-between h-[230px] shadow-sm">
+            <div className="space-y-2">
+              <div className="h-3 bg-muted rounded-[4px] w-24" />
+              <div className="h-5 bg-secondary rounded-[6px] w-36" />
+            </div>
+            <div className="space-y-4 my-6">
+              {Array.from({ length: 2 }).map((_, idx) => (
+                <div key={idx} className="space-y-2">
+                  <div className="flex justify-between">
+                    <div className="h-3 bg-muted rounded-[4px] w-24" />
+                    <div className="h-3 bg-muted rounded-[4px] w-12" />
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-secondary" />
+                </div>
+              ))}
+            </div>
+            <div className="h-4 bg-secondary rounded-[4px] w-28" />
+          </div>
+
+          {/* Bento Cell 3: Sending Activity Sparkline (Double-Wide) */}
+          <div className="md:col-span-2 rounded-[16px] border border-border bg-background p-6 flex flex-col justify-between h-[230px] shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="space-y-2">
+                <div className="h-3 bg-muted rounded-[4px] w-24" />
+                <div className="h-5 bg-secondary rounded-[6px] w-36" />
+              </div>
+              <div className="h-4 bg-muted rounded-[4px] w-20" />
+            </div>
+            <div className="w-full h-[120px] bg-secondary/30 rounded-[10px] flex items-end justify-between p-4 gap-2">
+              {Array.from({ length: 12 }).map((_, idx) => (
+                <div 
+                  key={idx} 
+                  className="flex-1 bg-muted rounded-t-[4px]" 
+                  style={{ height: `${20 + (idx % 3) * 25 + Math.sin(idx) * 10}%` }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Bento Cell 4: Top Email Template */}
+          <div className="rounded-[16px] border border-border bg-background p-6 flex flex-col justify-between h-[230px] shadow-sm">
+            <div className="space-y-2">
+              <div className="h-3 bg-muted rounded-[4px] w-24" />
+              <div className="h-5 bg-secondary rounded-[6px] w-40" />
+            </div>
+            <div className="my-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-[8px] bg-secondary shrink-0" />
+                <div className="space-y-2 w-full">
+                  <div className="h-4 bg-secondary rounded-[4px] w-2/3" />
+                  <div className="h-3 bg-muted rounded-[4px] w-1/3" />
+                </div>
+              </div>
+              <div className="h-[46px] bg-secondary/35 border border-border/40 rounded-[10px]" />
+            </div>
+            <div className="h-4 bg-secondary rounded-[4px] w-28" />
+          </div>
+
+          {/* Bento Cell 5: Campaign & Weekly Plan Performance List (Full-Width) */}
+          <div className="md:col-span-3 rounded-[16px] border border-border bg-background p-6 shadow-sm space-y-4">
+            <div className="flex justify-between items-center border-b border-border/45 pb-3">
+              <div className="space-y-2">
+                <div className="h-3 bg-muted rounded-[4px] w-24" />
+                <div className="h-5 bg-secondary rounded-[6px] w-40" />
+              </div>
+              <div className="h-4 bg-muted rounded-[4px] w-24" />
+            </div>
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, idx) => (
+                <div key={idx} className="flex justify-between items-center py-2.5 border-b border-border/20 last:border-0">
+                  <div className="h-4 bg-secondary rounded-[4px] w-1/4" />
+                  <div className="h-4 bg-secondary rounded-[4px] w-16" />
+                  <div className="h-4 bg-muted rounded-[4px] w-12" />
+                  <div className="h-4 bg-muted rounded-[4px] w-12" />
+                  <div className="h-4 bg-secondary rounded-[4px] w-20" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Bento Cell 6: Recent Reply Contacts Feed */}
+          <div className="md:col-span-3 rounded-[16px] border border-border bg-background p-6 shadow-sm space-y-4">
+            <div className="flex justify-between items-center border-b border-border/45 pb-3">
+              <div className="space-y-2">
+                <div className="h-3 bg-muted rounded-[4px] w-24" />
+                <div className="h-5 bg-secondary rounded-[6px] w-48" />
+              </div>
+              <div className="h-4 bg-muted rounded-[4px] w-20" />
+            </div>
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, idx) => (
+                <div key={idx} className="flex justify-between items-center py-1 border-b border-border/20 last:border-0 pb-3 last:pb-0 font-medium">
+                  <div className="space-y-2 w-1/3">
+                    <div className="h-4 bg-secondary rounded-[4px] w-full" />
+                    <div className="h-3 bg-muted rounded-[4px] w-2/3" />
+                  </div>
+                  <div className="space-y-2 w-24 text-right">
+                    <div className="h-3 bg-muted rounded-[4px] w-full" />
+                    <div className="h-4 bg-secondary rounded-[4px] w-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+
+        {/* Quick Actions Skeleton */}
+        <div className="pt-6 space-y-4">
+          <div className="h-3 bg-muted rounded-[4px] w-24" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <div key={idx} className="p-4 rounded-[12px] border border-border bg-background h-24 flex flex-col gap-3 justify-center">
+                <div className="w-8 h-8 rounded-[8px] bg-secondary" />
+                <div className="space-y-2">
+                  <div className="h-3 bg-secondary rounded-[4px] w-2/3" />
+                  <div className="h-3 bg-muted rounded-[4px] w-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
