@@ -147,7 +147,7 @@ export async function GET(request: Request) {
     // 4. Replying Companies (newest first)
     const { data: repliedRecipients } = await supabase
       .from('campaign_recipients')
-      .select('replied_at, company:companies(id, name, website, industry)')
+      .select('replied_at, contact:contacts(company:companies(id, name, website, industry))')
       .eq('status', 'replied')
       .order('replied_at', { ascending: false });
 
@@ -155,13 +155,14 @@ export async function GET(request: Request) {
     const seenCompanyIds = new Set<string>();
 
     repliedRecipients?.forEach((r: any) => {
-      if (r.company && !seenCompanyIds.has(r.company.id)) {
-        seenCompanyIds.add(r.company.id);
+      const company = r.contact?.company;
+      if (company && !seenCompanyIds.has(company.id)) {
+        seenCompanyIds.add(company.id);
         uniqueReplyingCompanies.push({
-          id: r.company.id,
-          name: r.company.name,
-          website: r.company.website,
-          industry: r.company.industry,
+          id: company.id,
+          name: company.name,
+          website: company.website,
+          industry: company.industry,
           replied_at: r.replied_at,
         });
       }

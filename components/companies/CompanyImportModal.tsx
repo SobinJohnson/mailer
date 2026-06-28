@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { X, Upload, Download, FileSpreadsheet, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -85,12 +86,12 @@ export function CompanyImportModal({ open, onClose }: CompanyImportModalProps) {
     }
   };
 
-  if (!open) return null;
+  if (!open || typeof window === 'undefined') return null;
 
-  return (
+  return createPortal(
     <>
-      <div className="fixed inset-0 bg-foreground/10 backdrop-blur-[2px] z-40 animate-fade-in" onClick={onClose} />
-      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[500px] bg-background border border-border shadow-xl rounded-[16px] z-50 animate-scale-in flex flex-col">
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] animate-fade-in" onClick={onClose} />
+      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[500px] bg-background border border-border shadow-xl rounded-[16px] z-[101] animate-scale-in flex flex-col">
         
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
@@ -157,6 +158,7 @@ export function CompanyImportModal({ open, onClose }: CompanyImportModalProps) {
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
