@@ -515,6 +515,77 @@ describe('Sync & Send API Routes', () => {
 
       process.env.CRON_SECRET = prevSecret;
     });
+
+    it('skips recipients that are not in sent status to avoid duplicate matches', async () => {
+      const updatedCampaignRecipient = vi.fn().mockReturnThis();
+
+      const mockSupa = {
+        from: vi.fn().mockImplementation((table: string) => {
+          if (table === 'smtp_configs') {
+            return {
+              select: vi.fn().mockReturnThis(),
+              not: vi.fn().mockReturnThis(),
+              in: vi.fn().mockReturnThis(),
+              then: (resolve: any) => resolve({ data: [{ id: 'smtp1', imap_host: 'imap.test.com', imap_username: 'test', imap_password: 'pwd' }], error: null }),
+            };
+          }
+          if (table === 'campaign_recipients') {
+            return {
+              select: vi.fn().mockImplementation(() => {
+                return {
+                  in: vi.fn().mockImplementation((field: string, values: any[]) => {
+                    if (field === 'message_id') {
+                      return {
+                        eq: vi.fn().mockImplementation((col: string, val: string) => {
+                          expect(col).toBe('status');
+                          expect(val).toBe('sent');
+                          return {
+                            limit: vi.fn().mockReturnThis(),
+                            then: (resolve: any) => resolve({ data: [], error: null }),
+                          };
+                        }),
+                      };
+                    }
+                    return { limit: vi.fn().mockReturnThis(), then: (resolve: any) => resolve({ data: [], error: null }) };
+                  }),
+                };
+              }),
+              update: updatedCampaignRecipient,
+              eq: vi.fn().mockReturnThis(),
+              then: (resolve: any) => resolve({ data: [], error: null }),
+            };
+          }
+          return {
+            select: vi.fn().mockReturnThis(),
+            update: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            then: (resolve: any) => resolve({ data: [], error: null }),
+          };
+        }),
+        auth: {
+          getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user1' } }, error: null }),
+        },
+      };
+
+      vi.mocked(createClient).mockResolvedValue(mockSupa as any);
+      vi.mocked(createServiceClient).mockReturnValue(mockSupa as any);
+
+      const req = makeRequest('POST', 'http://localhost:3500/api/sync/imap', {
+        'Authorization': `Bearer test-cron-secret-12345`,
+        'Content-Type': 'application/json',
+      });
+      const prevSecret = process.env.CRON_SECRET;
+      process.env.CRON_SECRET = 'test-cron-secret-12345';
+
+      const res = await POST_IMAP(req);
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.results[0].matches).toBe(0);
+
+      expect(updatedCampaignRecipient).not.toHaveBeenCalled();
+
+      process.env.CRON_SECRET = prevSecret;
+    });
   });
 
   describe('POST /api/sync/manual', () => {
