@@ -157,6 +157,7 @@ export async function POST(request: Request) {
                 .from('campaign_recipients')
                 .select('id, contact_id, campaign_id')
                 .in('message_id', searchIds)
+                .eq('status', 'sent')
                 .limit(1);
 
               if (matchedRecipients && matchedRecipients.length > 0) {

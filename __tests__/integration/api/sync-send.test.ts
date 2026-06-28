@@ -351,6 +351,7 @@ describe('Sync & Send API Routes', () => {
                   in: vi.fn().mockImplementation((field: string, values: any[]) => {
                     expect(values).toContain('original-message-id-from-body');
                     return {
+                      eq: vi.fn().mockReturnThis(),
                       limit: vi.fn().mockReturnThis(),
                       then: (resolve: any) => resolve({ data: [{ id: 'rec1', contact_id: 'c1', campaign_id: 'camp1' }], error: null }),
                     };
@@ -440,6 +441,7 @@ describe('Sync & Send API Routes', () => {
                     if (field === 'message_id') {
                       // Return no match for Message-ID
                       return {
+                        eq: vi.fn().mockReturnThis(),
                         limit: vi.fn().mockReturnThis(),
                         then: (resolve: any) => resolve({ data: [], error: null }),
                       };
