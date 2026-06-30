@@ -13,7 +13,12 @@ type Props = {
 };
 
 export default async function CompaniesPage({ searchParams }: Props) {
+  console.time('companies-page:total');
+  
+  console.time('companies-page:searchParams');
   const params = await searchParams;
+  console.timeEnd('companies-page:searchParams');
+
   const page = Math.max(1, parseInt(params.page || '1', 10) || 1);
   const search = params.search || '';
   const sortBy = params.sortBy || 'created_at';
@@ -23,7 +28,9 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
+  console.time('companies-page:createClient');
   const supabase = await createClient();
+  console.timeEnd('companies-page:createClient');
   
   let query = supabase
     .from('companies')
@@ -37,13 +44,15 @@ export default async function CompaniesPage({ searchParams }: Props) {
     .order(sortBy, { ascending: sortDirection === 'asc' })
     .range(from, to);
 
+  console.time('companies-page:query');
   const { data: companies, count, error } = await query;
+  console.timeEnd('companies-page:query');
 
   if (error) {
     console.error('Error fetching companies:', error);
   }
 
-  return (
+  const table = (
     <CompanyTable 
       initialCompanies={companies || []} 
       count={count || 0}
@@ -51,4 +60,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
       pageSize={pageSize}
     />
   );
+
+  console.timeEnd('companies-page:total');
+  return table;
 }
