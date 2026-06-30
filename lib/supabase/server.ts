@@ -44,6 +44,8 @@ export function createServiceClient() {
  * Ensures system settings (app_url and cron_secret) are updated in the database
  * to allow pg_cron + pg_net to trigger scheduled processing.
  */
+let lastRegisteredSettings: { appUrl: string; cronSecret: string } | null = null;
+
 export async function ensureSystemSettings() {
   try {
     const headersList = await headers();
@@ -52,7 +54,17 @@ export async function ensureSystemSettings() {
 
     const protocol = host.startsWith('localhost') || host.startsWith('127.0.0.1') ? 'http' : 'https';
     const appUrl = `${protocol}://${host}`;
-    const cronSecret = process.env.CRON_SECRET;
+    const cronSecret = process.env.CRON_SECRET || '';
+
+    // Skip database writes if already registered in this container instance
+    if (
+      lastRegisteredSettings &&
+      lastRegisteredSettings.appUrl === appUrl &&
+      lastRegisteredSettings.cronSecret === cronSecret
+    ) {
+      return;
+    }
+
     const vercelBypassToken = process.env.VERCEL_BYPASS_TOKEN || process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 
     if (!cronSecret) return;
@@ -82,6 +94,8 @@ export async function ensureSystemSettings() {
     }
 
     await Promise.all(upserts);
+
+    lastRegisteredSettings = { appUrl, cronSecret };
   } catch (err) {
     console.error('Failed to ensure system settings:', err);
   }

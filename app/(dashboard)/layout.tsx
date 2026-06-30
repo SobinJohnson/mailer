@@ -196,6 +196,7 @@ export default function DashboardLayout({
       <Link
         href={item.href}
         onClick={() => setMobileOpen(false)}
+        prefetch={false}
         className={`
           group relative flex items-center gap-3 rounded-[8px] px-3 py-[7px] text-[13px] font-medium
           transition-all duration-150 ease-out select-none
