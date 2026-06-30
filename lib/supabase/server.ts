@@ -56,7 +56,7 @@ export async function ensureSystemSettings() {
     const appUrl = `${protocol}://${host}`;
     const cronSecret = process.env.CRON_SECRET || '';
 
-    // Skip database writes if already registered in this container instance
+    // 1. In-memory cache short-circuit (fast path for warm container instances)
     if (
       lastRegisteredSettings &&
       lastRegisteredSettings.appUrl === appUrl &&
@@ -65,36 +65,55 @@ export async function ensureSystemSettings() {
       return;
     }
 
-    const vercelBypassToken = process.env.VERCEL_BYPASS_TOKEN || process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
-
     if (!cronSecret) return;
 
-    const supabase = createServiceClient();
-    
-    // Upsert key/value system settings
-    const upserts = [
-      supabase.from('system_settings').upsert({ key: 'app_url', value: appUrl }),
-      supabase.from('system_settings').upsert({ key: 'cron_secret', value: cronSecret }),
-      // These two allow pg_cron to call the sync-imap Edge Function directly
-      // (Edge Function URL = SUPABASE_URL + /functions/v1/sync-imap, always reachable from cloud)
-      supabase.from('system_settings').upsert({
-        key: 'supabase_url',
-        value: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      }),
-      supabase.from('system_settings').upsert({
-        key: 'supabase_service_key',
-        value: process.env.SUPABASE_SERVICE_KEY!,
-      }),
-    ];
+    const vercelBypassToken = process.env.VERCEL_BYPASS_TOKEN || process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '';
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
 
-    if (vercelBypassToken) {
-      upserts.push(
-        supabase.from('system_settings').upsert({ key: 'vercel_bypass_token', value: vercelBypassToken })
-      );
+    const supabase = createServiceClient();
+
+    // 2. Fetch existing settings from DB (guarded check for cold starts)
+    const { data: existing, error: selectError } = await supabase
+      .from('system_settings')
+      .select('key, value')
+      .in('key', ['app_url', 'cron_secret', 'supabase_url', 'supabase_service_key', 'vercel_bypass_token']);
+
+    if (selectError) {
+      throw selectError;
     }
 
-    await Promise.all(upserts);
+    const existingMap = new Map((existing || []).map((row: any) => [row.key, row.value]));
 
+    // 3. Compare and determine which settings actually need to be updated
+    const pendingUpserts: Array<{ key: string; value: string }> = [];
+
+    const checkAndPush = (key: string, currentValue: string) => {
+      if (existingMap.get(key) !== currentValue) {
+        pendingUpserts.push({ key, value: currentValue });
+      }
+    };
+
+    checkAndPush('app_url', appUrl);
+    checkAndPush('cron_secret', cronSecret);
+    checkAndPush('supabase_url', supabaseUrl);
+    checkAndPush('supabase_service_key', supabaseServiceKey);
+    if (vercelBypassToken) {
+      checkAndPush('vercel_bypass_token', vercelBypassToken);
+    }
+
+    // 4. Run upserts ONLY for changed/missing keys
+    if (pendingUpserts.length > 0) {
+      const { error: upsertError } = await supabase
+        .from('system_settings')
+        .upsert(pendingUpserts);
+
+      if (upsertError) {
+        throw upsertError;
+      }
+    }
+
+    // 5. Update in-memory cache
     lastRegisteredSettings = { appUrl, cronSecret };
   } catch (err) {
     console.error('Failed to ensure system settings:', err);
