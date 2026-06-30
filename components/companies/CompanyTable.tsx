@@ -21,6 +21,9 @@ import { CompanyImportModal } from './CompanyImportModal';
 
 interface CompanyTableProps {
   initialCompanies: Company[];
+  count: number;
+  currentPage: number;
+  pageSize: number;
 }
 
 const statusStyles: Record<string, string> = {
@@ -30,7 +33,7 @@ const statusStyles: Record<string, string> = {
   do_not_contact: 'bg-destructive/8 text-destructive',
 };
 
-export function CompanyTable({ initialCompanies }: CompanyTableProps) {
+export function CompanyTable({ initialCompanies, count, currentPage: initialPage, pageSize }: CompanyTableProps) {
   const [importOpen, setImportOpen] = useState(false);
   const router = useRouter();
   const {
@@ -44,9 +47,10 @@ export function CompanyTable({ initialCompanies }: CompanyTableProps) {
     handleSort,
   } = useClientTable({
     data: initialCompanies,
-    pageSize: 10,
+    pageSize,
+    serverSide: true,
+    serverCount: count,
     initialSortBy: 'created_at',
-    searchableFields: ['name', 'industry', 'city', 'state'],
   });
 
   const handleExport = () => {

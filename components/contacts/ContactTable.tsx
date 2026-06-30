@@ -251,6 +251,7 @@ export function ContactTable({ initialContacts, companies }: ContactTableProps) 
                     {(contact as any).company ? (
                       <Link
                         href={`/companies/${contact.company_id}`}
+                        prefetch={false}
                         className="text-[13px] text-foreground hover:text-primary transition-colors"
                         onClick={e => e.stopPropagation()}
                       >
