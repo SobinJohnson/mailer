@@ -34,16 +34,21 @@ function makeRequest(method: string, url: string, body?: Record<string, any>): R
  * Supports: .from().select().or().order(), .from().select().order()
  */
 function buildSelectMock(result: { data: any; error: any; count?: number | null }) {
+  const rangeChain = Promise.resolve(result);
+  const orderChain = { range: vi.fn().mockReturnValue(rangeChain) };
   return {
     from: vi.fn().mockReturnValue({
       select: vi.fn().mockReturnValue({
         or: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue(result),
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockReturnValue(orderChain),
+          }),
+          order: vi.fn().mockReturnValue(orderChain),
         }),
         eq: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue(result),
+          order: vi.fn().mockReturnValue(orderChain),
         }),
-        order: vi.fn().mockResolvedValue(result),
+        order: vi.fn().mockReturnValue(orderChain),
         limit: vi.fn().mockResolvedValue(result),
       }),
     }),

@@ -8,8 +8,9 @@ export default async function CompaniesPage() {
   
   const { data: companies, error } = await supabase
     .from('companies')
-    .select('*')
-    .order('created_at', { ascending: false });
+    .select('id, name, industry, city, state, website, linkedin_url, notes, tags, status, created_at, updated_at')
+    .order('created_at', { ascending: false })
+    .range(0, 99);
 
   if (error) {
     console.error('Error fetching companies:', error);

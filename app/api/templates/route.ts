@@ -18,8 +18,16 @@ export async function GET(request: Request) {
   
   const search = searchParams.get('search');
   const category = searchParams.get('category');
-  
-  let query = supabase.from('email_templates').select('*', { count: 'exact' });
+  const page = Math.max(0, parseInt(searchParams.get('page') ?? '0', 10) || 0);
+  const pageSize = Math.min(100, parseInt(searchParams.get('pageSize') ?? '100', 10) || 100);
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
+
+  // 'variables' and 'attachments' are array fields not needed in the list or preview
+  let query = supabase.from('email_templates').select(
+    'id, name, subject, body_html, body_text, category, created_at, updated_at',
+    { count: 'exact' }
+  );
 
   if (search) {
     query = query.ilike('name', `%${search}%`);
@@ -29,7 +37,7 @@ export async function GET(request: Request) {
     query = query.eq('category', category);
   }
 
-  query = query.order('created_at', { ascending: false });
+  query = query.order('created_at', { ascending: false }).range(from, to);
 
   const { data, error, count } = await query;
 

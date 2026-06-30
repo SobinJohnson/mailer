@@ -20,8 +20,15 @@ export async function GET(request: Request) {
   
   const search = searchParams.get('search');
   const status = searchParams.get('status');
-  
-  let query = supabase.from('companies').select('*', { count: 'exact' });
+  const page = Math.max(0, parseInt(searchParams.get('page') ?? '0', 10) || 0);
+  const pageSize = Math.min(100, parseInt(searchParams.get('pageSize') ?? '100', 10) || 100);
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
+
+  let query = supabase.from('companies').select(
+    'id, name, industry, city, state, website, linkedin_url, notes, tags, status, created_at, updated_at',
+    { count: 'exact' }
+  );
 
   if (search) {
     query = query.ilike('name', `%${search}%`);
@@ -31,7 +38,7 @@ export async function GET(request: Request) {
     query = query.eq('status', status);
   }
 
-  query = query.order('created_at', { ascending: false });
+  query = query.order('created_at', { ascending: false }).range(from, to);
 
   const { data, error, count } = await query;
 

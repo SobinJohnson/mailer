@@ -34,7 +34,8 @@ describe('Weekly Plans API Routes', () => {
   describe('GET /api/weekly-plans', () => {
     it('returns lists of weekly plans', async () => {
       configure({ data: [{ id: 'plan1', name: 'Q2 Mailings', start_date: '2026-06-01' }], error: null });
-      const res = await GET();
+      const req = makeRequest('GET', 'http://localhost:3500/api/weekly-plans');
+      const res = await GET(req);
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json.data).toHaveLength(1);

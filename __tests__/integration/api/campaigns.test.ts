@@ -32,7 +32,7 @@ describe('Campaigns API Routes', () => {
     it('returns lists of campaigns', async () => {
       configure({ data: [{ id: 'camp1', name: 'Intro Campaign' }], error: null });
       const req = makeRequest('GET', 'http://localhost:3500/api/campaigns');
-      const res = await GET();
+      const res = await GET(req);
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json.data).toHaveLength(1);

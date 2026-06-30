@@ -24,14 +24,20 @@ export async function GET(request: Request) {
   const search = searchParams.get('search');
   const company_id = searchParams.get('company_id');
   const activeParam = searchParams.get('is_active');
+  const page = Math.max(0, parseInt(searchParams.get('page') ?? '0', 10) || 0);
+  const pageSize = Math.min(200, parseInt(searchParams.get('pageSize') ?? '200', 10) || 200);
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
   
   let query = supabase.from('contacts').select(`
-    *,
-    company:companies (id, name)
+    id, company_id, first_name, last_name, email, designation, phone,
+    is_primary, notes, linkedin_url, is_general_mailbox,
+    verification_status, is_active, created_at,
+    company:companies(id, name)
   `, { count: 'exact' });
 
   if (search) {
-    const escaped = search.replace(/[\\"]/g, '\\$&');
+    const escaped = search.replace(/[\\\"]/g, '\\$&');
     const pattern = `"%${escaped}%"`;
     query = query.or(`first_name.ilike.${pattern},last_name.ilike.${pattern},email.ilike.${pattern}`);
   }
@@ -46,7 +52,7 @@ export async function GET(request: Request) {
     query = query.eq('is_active', false);
   }
 
-  query = query.order('created_at', { ascending: false });
+  query = query.order('created_at', { ascending: false }).range(from, to);
 
   const { data, error, count } = await query;
 

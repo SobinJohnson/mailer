@@ -83,8 +83,9 @@ export async function GET() {
   
   const { data, error } = await supabase
     .from('attachments')
-    .select('*')
-    .order('uploaded_at', { ascending: false });
+    .select('id, filename, storage_path, mime_type, size_bytes, uploaded_at')
+    .order('uploaded_at', { ascending: false })
+    .range(0, 199);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

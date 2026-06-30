@@ -25,24 +25,34 @@ const campaignSchema = z.object({
   followup_gap_days: z.number().int().min(1).optional().nullable(),
 });
 
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = await createClient();
-  
-  const { data, error } = await supabase
+
+  const { searchParams } = new URL(request.url);
+  const page = Math.max(0, parseInt(searchParams.get('page') ?? '0', 10) || 0);
+  const pageSize = Math.min(100, parseInt(searchParams.get('pageSize') ?? '50', 10) || 50);
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
     .from('campaigns')
     .select(`
-      *,
+      id, name, description, status, from_name, from_email, reply_to,
+      send_gap_minutes, gap_jitter_pct, scheduled_at, start_date, end_date,
+      send_time, active_days, followups, followup_template_id, followup_gap_days,
+      template_id, smtp_config_id, weekly_plan_id, created_at, updated_at,
       template:email_templates!campaigns_template_id_fkey(name),
       smtp_config:smtp_configs(label),
       recipients:campaign_recipients(count)
-    `)
-    .order('created_at', { ascending: false });
+    `, { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(from, to);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ data });
+  return NextResponse.json({ data, count, page, pageSize });
 }
 
 export async function POST(request: Request) {

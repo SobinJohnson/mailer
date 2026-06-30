@@ -27,7 +27,7 @@ export async function GET(
 
   const { data, error } = await supabase
     .from('contacts')
-    .select('*, companies(*)')
+    .select('id, company_id, first_name, last_name, email, designation, phone, is_primary, notes, linkedin_url, is_general_mailbox, verification_status, is_active, created_at, companies(id, name, industry, city, state, website, linkedin_url, notes, tags, status)')
     .eq('id', id)
     .single();
 
