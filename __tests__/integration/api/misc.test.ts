@@ -124,7 +124,8 @@ describe('Misc API Routes', () => {
   describe('Groups APIs', () => {
     it('returns lists of contact groups', async () => {
       configure({ data: [{ id: 'group1', name: 'Leads' }], error: null });
-      const res = await GET_GROUPS();
+      const req = makeRequest('GET', 'http://localhost:3500/api/groups');
+      const res = await GET_GROUPS(req);
       expect(res.status).toBe(200);
     });
 

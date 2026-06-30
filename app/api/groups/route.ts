@@ -9,25 +9,32 @@ const groupSchema = z.object({
   contact_ids: z.array(z.string().uuid()).default([]),
 });
 
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  const { searchParams } = new URL(request.url);
+  const page = Math.max(0, parseInt(searchParams.get('page') ?? '0', 10) || 0);
+  const pageSize = Math.min(100, parseInt(searchParams.get('pageSize') ?? '50', 10) || 50);
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
     .from('contact_groups')
     .select(`
-      *,
+      id, name, description, color, created_at,
       members:contact_group_members(
         contact:contacts(id, first_name, last_name, email, company_id,
           company:companies(name))
       )
-    `)
-    .order('created_at', { ascending: false });
+    `, { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(from, to);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ data });
+  return NextResponse.json({ data, count, page, pageSize });
 }
 
 export async function POST(request: Request) {

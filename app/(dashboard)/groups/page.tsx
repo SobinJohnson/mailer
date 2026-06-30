@@ -10,13 +10,14 @@ export default async function GroupsPage() {
     supabase
       .from('contact_groups')
       .select(`
-        *,
+        id, name, description, color, created_at,
         members:contact_group_members(
           contact:contacts(id, first_name, last_name, email, company_id,
             company:companies(name))
         )
       `)
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false })
+      .range(0, 49),
     supabase
       .from('companies')
       .select('id, name, contacts(id, first_name, last_name, email, is_primary)')
@@ -26,7 +27,7 @@ export default async function GroupsPage() {
 
   return (
     <GroupsManager
-      initialGroups={groupsRes.data || []}
+      initialGroups={(groupsRes.data as any[]) || []}
       companies={companiesRes.data || []}
     />
   );
