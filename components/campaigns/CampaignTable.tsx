@@ -17,6 +17,9 @@ import { ArrowUpDown } from 'lucide-react';
 
 interface CampaignTableProps {
   initialCampaigns: any[];
+  count: number;
+  currentPage: number;
+  pageSize: number;
 }
 
 const statusStyles: Record<string, string> = {
@@ -26,7 +29,7 @@ const statusStyles: Record<string, string> = {
   paused:    'bg-warning/8 text-warning',
 };
 
-export function CampaignTable({ initialCampaigns }: CampaignTableProps) {
+export function CampaignTable({ initialCampaigns, count, currentPage: initialPage, pageSize }: CampaignTableProps) {
   const router = useRouter();
   const [isDisabled, setIsDisabled] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -47,9 +50,10 @@ export function CampaignTable({ initialCampaigns }: CampaignTableProps) {
     handleSort,
   } = useClientTable({
     data: initialCampaigns,
-    pageSize: 10,
+    pageSize,
+    serverSide: true,
+    serverCount: count,
     initialSortBy: 'created_at',
-    searchableFields: ['name', 'status'],
   });
 
   if (!mounted) {

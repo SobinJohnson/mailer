@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import { ContactImportModal } from './ContactImportModal';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
 import { useClientTable } from '@/hooks/useClientTable';
 import { PaginationControls } from '@/components/shared/PaginationControls';
@@ -30,20 +30,18 @@ import {
 interface ContactTableProps {
   initialContacts: Contact[];
   companies: Array<{ id: string; name: string }>;
+  count: number;
+  currentPage: number;
+  pageSize: number;
+  status: string;
 }
 
-export function ContactTable({ initialContacts, companies }: ContactTableProps) {
+export function ContactTable({ initialContacts, companies, count, currentPage: initialPage, pageSize, status }: ContactTableProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [importOpen, setImportOpen] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
-
-  const filteredByStatus = useMemo(() => {
-    return initialContacts.filter(c => {
-      if (activeFilter === 'active') return c.is_active !== false;
-      if (activeFilter === 'inactive') return c.is_active === false;
-      return true;
-    });
-  }, [initialContacts, activeFilter]);
+  const activeFilter = (status || 'all') as 'all' | 'active' | 'inactive';
 
   const {
     search,
@@ -55,11 +53,23 @@ export function ContactTable({ initialContacts, companies }: ContactTableProps) 
     setCurrentPage,
     handleSort,
   } = useClientTable({
-    data: filteredByStatus,
-    pageSize: 10,
+    data: initialContacts,
+    pageSize,
+    serverSide: true,
+    serverCount: count,
     initialSortBy: 'created_at',
-    searchableFields: ['first_name', 'last_name', 'email'],
   });
+
+  const handleFilterChange = (filter: 'all' | 'active' | 'inactive') => {
+    const params = new URLSearchParams(searchParams?.toString() || '');
+    if (filter === 'all') {
+      params.delete('status');
+    } else {
+      params.set('status', filter);
+    }
+    params.set('page', '1');
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   const handleExport = () => {
     const exportData = filtered.map(c => ({
@@ -153,7 +163,7 @@ export function ContactTable({ initialContacts, companies }: ContactTableProps) 
           <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-[8px] border border-border">
             <button
               type="button"
-              onClick={() => { setActiveFilter('all'); setCurrentPage(1); }}
+              onClick={() => handleFilterChange('all')}
               className={cn(
                 "px-2.5 py-1 text-[11px] font-medium rounded-[6px] transition-all cursor-pointer",
                 activeFilter === 'all' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
@@ -163,7 +173,7 @@ export function ContactTable({ initialContacts, companies }: ContactTableProps) 
             </button>
             <button
               type="button"
-              onClick={() => { setActiveFilter('active'); setCurrentPage(1); }}
+              onClick={() => handleFilterChange('active')}
               className={cn(
                 "px-2.5 py-1 text-[11px] font-medium rounded-[6px] transition-all cursor-pointer",
                 activeFilter === 'active' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
@@ -173,7 +183,7 @@ export function ContactTable({ initialContacts, companies }: ContactTableProps) 
             </button>
             <button
               type="button"
-              onClick={() => { setActiveFilter('inactive'); setCurrentPage(1); }}
+              onClick={() => handleFilterChange('inactive')}
               className={cn(
                 "px-2.5 py-1 text-[11px] font-medium rounded-[6px] transition-all cursor-pointer",
                 activeFilter === 'inactive' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"

@@ -19,6 +19,9 @@ import { TemplatePreviewModal } from './TemplatePreviewModal';
 
 interface TemplateTableProps {
   initialTemplates: EmailTemplate[];
+  count: number;
+  currentPage: number;
+  pageSize: number;
 }
 
 const categoryLabel: Record<string, string> = {
@@ -28,7 +31,7 @@ const categoryLabel: Record<string, string> = {
   event: 'Event',
 };
 
-export function TemplateTable({ initialTemplates }: TemplateTableProps) {
+export function TemplateTable({ initialTemplates, count, currentPage: initialPage, pageSize }: TemplateTableProps) {
   const router = useRouter();
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -49,9 +52,10 @@ export function TemplateTable({ initialTemplates }: TemplateTableProps) {
     handleSort,
   } = useClientTable({
     data: initialTemplates,
-    pageSize: 10,
+    pageSize,
+    serverSide: true,
+    serverCount: count,
     initialSortBy: 'updated_at',
-    searchableFields: ['name', 'subject'],
   });
 
   return (
