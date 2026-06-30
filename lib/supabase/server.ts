@@ -47,7 +47,6 @@ export function createServiceClient() {
 let lastRegisteredSettings: { appUrl: string; cronSecret: string } | null = null;
 
 export async function ensureSystemSettings() {
-  console.time('ensureSystemSettings:total');
   try {
     const headersList = await headers();
     const host = headersList.get('host');
@@ -63,13 +62,11 @@ export async function ensureSystemSettings() {
       lastRegisteredSettings.appUrl === appUrl &&
       lastRegisteredSettings.cronSecret === cronSecret
     ) {
-      console.log('ensureSystemSettings:cache-hit');
       return;
     }
 
     if (!cronSecret) return;
 
-    console.time('ensureSystemSettings:db-path');
     const vercelBypassToken = process.env.VERCEL_BYPASS_TOKEN || process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '';
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
@@ -118,10 +115,7 @@ export async function ensureSystemSettings() {
 
     // 5. Update in-memory cache
     lastRegisteredSettings = { appUrl, cronSecret };
-    console.timeEnd('ensureSystemSettings:db-path');
   } catch (err) {
     console.error('Failed to ensure system settings:', err);
-  } finally {
-    console.timeEnd('ensureSystemSettings:total');
   }
 }

@@ -26,11 +26,9 @@ export async function middleware(request: NextRequest) {
   );
 
   // Refresh the session — important for Server Components
-  console.time('middleware:auth.getUser');
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  console.timeEnd('middleware:auth.getUser');
 
   const isAuthPage = request.nextUrl.pathname.startsWith('/login');
   const isSetupPage = request.nextUrl.pathname.startsWith('/setup');
