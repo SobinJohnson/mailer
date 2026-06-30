@@ -24,7 +24,9 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   // Automatically register host URL and cron secret in database system settings
-  await ensureSystemSettings();
+  ensureSystemSettings().catch((err) => {
+    console.error('Failed to ensure system settings:', err);
+  });
 
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
