@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
   Table, TableBody, TableCell,
   TableHead, TableHeader, TableRow,
@@ -31,8 +31,16 @@ const statusStyles: Record<string, string> = {
 
 export function CampaignTable({ initialCampaigns, count, currentPage: initialPage, pageSize }: CampaignTableProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isDisabled, setIsDisabled] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  const handlePageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams?.toString() || '');
+    params.set('page', String(page));
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   useEffect(() => {
     setIsDisabled(localStorage.getItem('hideCampaigns') === 'true');
@@ -174,7 +182,7 @@ export function CampaignTable({ initialCampaigns, count, currentPage: initialPag
           currentPage={currentPage}
           totalPages={totalPages}
           totalResults={totalResults}
-          onPageChange={setCurrentPage}
+          onPageChange={handlePageChange}
         />
       </div>
     </div>

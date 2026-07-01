@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
   Table, TableBody, TableCell,
   TableHead, TableHeader, TableRow,
@@ -33,8 +33,16 @@ const categoryLabel: Record<string, string> = {
 
 export function TemplateTable({ initialTemplates, count, currentPage: initialPage, pageSize }: TemplateTableProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  const handlePageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams?.toString() || '');
+    params.set('page', String(page));
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   const handlePreviewClick = (t: EmailTemplate) => {
     setSelectedTemplate(t);
@@ -180,7 +188,7 @@ export function TemplateTable({ initialTemplates, count, currentPage: initialPag
           currentPage={currentPage}
           totalPages={totalPages}
           totalResults={totalResults}
-          onPageChange={setCurrentPage}
+          onPageChange={handlePageChange}
         />
       </div>
 

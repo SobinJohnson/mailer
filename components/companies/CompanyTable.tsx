@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useClientTable } from '@/hooks/useClientTable';
 import { PaginationControls } from '@/components/shared/PaginationControls';
 import { ArrowUpDown } from 'lucide-react';
@@ -36,6 +36,14 @@ const statusStyles: Record<string, string> = {
 export function CompanyTable({ initialCompanies, count, currentPage: initialPage, pageSize }: CompanyTableProps) {
   const [importOpen, setImportOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const handlePageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams?.toString() || '');
+    params.set('page', String(page));
+    router.push(`${pathname}?${params.toString()}`);
+  };
   const {
     search,
     setSearch,
@@ -81,7 +89,7 @@ export function CompanyTable({ initialCompanies, count, currentPage: initialPage
         <div>
           <h1 className="text-[28px] font-semibold text-foreground tracking-[-0.6px]">Companies</h1>
           <p className="text-[13px] text-muted-foreground mt-1">
-            {initialCompanies.length} {initialCompanies.length === 1 ? 'company' : 'companies'} in your database.
+            {count} {count === 1 ? 'company' : 'companies'} in your database.
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
@@ -203,7 +211,7 @@ export function CompanyTable({ initialCompanies, count, currentPage: initialPage
           currentPage={currentPage}
           totalPages={totalPages}
           totalResults={totalResults}
-          onPageChange={setCurrentPage}
+          onPageChange={handlePageChange}
         />
       </div>
     </div>
